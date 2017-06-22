@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html lang="en">
+<head>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+
+	<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+	<script type="text/javascript" >
+	function mandatory() {
+
+  		 // first form on page"
+	    	var nameValue = document.getElementById("name").value; // first field in form
+	    	if (nameValue == "") {
+	      		alert("Please enter a name");
+	      		return false;
+	    	}
+	    	var learningcenter=document.getElementById("learningcenter").value;
+	    	console.log(learningcenter);
+	    	if(learningcenter==""){
+	    		alert("Please Select Learning Center");
+	    		return false;
+	    	}
+	    	var phoneValue = document.getElementById("phone").value; // second field
+	    	if (phoneValue.length!=10) { // your first option does not have a value 
+	      		alert("Please give a valid phone number");
+	      		return false;
+	    	}
+	    	// var addrValue1 = document.getElementById("ad1").value; // second field
+	    	// if (addrValue1 == "") { // your first option does not have a value 
+	     //  		alert("Please give a valid Street/Flat no");
+	     //  		return false;
+	    	// }
+
+	    	// var addrValue2 = document.getElementById("ad2").value; // second field
+	    	// if (addrValue2 == "") { // your first option does not have a value 
+	     //  		alert("Please give a valid City/Town");
+	     //  		return false;
+	    	// }
+	    	// var addrValue3 = document.getElementById("ad3").value; // second field
+	    	// if (addrValue3 == "") { // your first option does not have a value 
+	     //  		alert("Please give a valid State");
+	     //  		return false;
+	    	// }
+	    	// var addrValue4 = document.getElementById("pincode").value; // second field
+	    	// if (addrValue4.length!=6 ) { // your first option does not have a value 
+	     //  		alert("Please give a valid pin");
+	     //  		return false;
+	    	// }
+	    	var rollNo = document.getElementById("rollno").value; // second field
+	    	if (rollNo.length==0) { // your first option does not have a value 
+	      		alert("Please give a valid roll number");
+	      		return false;
+	    	}
+
+	    	return true; // allow submission
+  		
+	}
+	</script>
+	
+	
+</head>
+<body>
+
+	<!-- Sign Up Modal -->
+	<div id="signupModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<!-- <button type="button" onclick="removeform()"class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button> -->
+					<h4 class="modal-title" id="myModalLabel">Personal Contact Information</h4>
+				</div>
+				<div class="modal-body">
+					<p>
+						Fill up your name, mobile phone number and roll number in the form below to sign up for the test.
+					</p>
+					
+					<form action="/savepersonaldata" method="post">
+						<div class="form-group">
+							<label for="exampleInputEmail1">Your Name</label>
+							<input id="name" name="name" type="text" class="form-control"  placeholder="Enter your name" >
+						</div>
+						<div class="form-group">
+							<label for="exampleInputEmail1">Phone No</label>
+							<input id="phone" name="phone" type="phone" class="form-control"  placeholder="Phone no.">
+						</div>
+						<div class="form-group">
+							<label for="exampleInputEmail1">Roll No</label>
+							<input id="rollno" name="rollno" type="number" class="form-control"  placeholder="Roll no.">
+						</div>
+						<!-- <div class="form-group">
+							<label for="exampleInputAddress">Address:</label>
+							<input id="ad1"type id="name1"type="text" class="form-control" placeholder="Street/Flat no">
+						</div>
+						<div class="form-group">
+							<input id="ad2" name="ad2" type="text" class="form-control" placeholder="City/Town">
+						</div>
+						<div class="form-group">
+							<input id="ad3" name="ad3" type="text" class="form-control" placeholder="State">
+						</div>
+						<div class="form-group">
+							<input id="pincode" name="pincode" type="text" class="form-control" placeholder="PIN Code">
+						</div> -->
+						<div class="form-group">
+							<label>Learning Center:</label>
+							<select id="learningcenter" name="learningcenter" class="form-control">
+								<option value="Basara">Basara</option>
+								<option value="Nuzvid">Nuzvid</option>
+								<option value="RK Valley">RK Valley</option>
+								<option value="Others">Others</option>
+							</select>
+						</div>
+				</div>
+				<div class="modal-footer">
+					<button id="submitbtn" type="submit" class="btn btn-primary">Submit</button>
+					<!-- <button type="button" onclick="removeform()" class="btn btn-default" data-dismiss="modal">Close</button> -->
+				</div></form>
+			</div>
+		</div>
+	</div>
+	<script type="text/javascript">
+// 		document.getElementById("submitbtn").onclick = function () {
+// 			console.log(document.getElementById("learningcenter").value);
+// 			var result = mandatory();
+// //			console.log(result+" is the given error	");
+// 			if(result == true) {
+// 				var data = { 
+
+// 					"name" : document.getElementById("name").value, 
+// 					"phno" : document.getElementById("phone").value,
+// 					// "add1" : document.getElementById("ad1").value,
+// 					// "add2" : document.getElementById("ad2").value,
+// 					// "add3" : document.getElementById("ad3").value, 
+// 					// "pincode":document.getElementById("pincode").value,
+// 					"rollno" : document.getElementById("roll").value,
+// 					"learningcenter":document.getElementById("learningcenter").value
+// 				}
+// //				console.log(data);
+			
+// 				data=JSON.stringify({jsonData: data});
+// //				console.log(data);
+				
+// 					$.post("/savepersonaldata", data);
+// // 							.done(function(data){
+// // //								console.log(data);
+// // 								location.href = "/startquiz";
+// // 							})
+// // 							.fail(function(){
+// // 								console.log("PING Failed");
+// // 							});
+				
+// 			} else {
+// 				return false;
+// 			}
+					
+// 		};
+	</script>
+	
+
+	
+	</body>
+	</html>
+
+
+	

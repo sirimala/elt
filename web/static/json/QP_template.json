@@ -1,0 +1,43 @@
+{
+    "name": "General Competency Test",
+    "section": [
+        {
+            "name": "Listening and Speaking Section",
+            "subsection": [
+                {
+                    "name": "E2-Listening",
+                    "count": "1",
+                    "questions": [],
+                    "note": "Listen to the video given and answer the following questions:",
+                    "types": "video"
+                },
+                {
+                    "name": "E3-Speaking",
+                    "count": "1",
+                    "questions": [],
+                    "types": "record",
+                    "note": ""
+                }
+            ]
+        },
+        {
+            "name": "Reading and Writing Section",
+            "subsection": [
+                {
+                    "name": "E1-Reading",
+                    "count": "1",
+                    "questions": [],
+                    "note": "Read the following passage and answer the questions",
+                    "types": "passage"
+                },
+                {
+                    "name": "E4-Writing",
+                    "count": "1",
+                    "questions": [],
+                    "types": "essay",
+                    "note": "Write the essay here"
+                }
+            ]
+        }
+    ]
+}

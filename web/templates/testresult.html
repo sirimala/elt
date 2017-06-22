@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+{% autoescape true %}
+<meta charset="utf-8">
+<html lang="en">
+<head>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+
+	<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+	<script type="text/javascript">
+
+		function showresult() {
+			$.ajax({
+			    type: 'get',
+			    url: '/getResult',
+			    dataType:'json',
+			    success: function (data) {
+			    	data=JSON.stringify(data);
+
+			    	//console.log(data);
+			    	data=JSON.parse(data);
+			    	console.log("hello");
+					//console.log(data.question[0].q_score);
+					var str="<table class=\"table table-bordered\">  <tr><td align=\"center\">QUSETION NUMBER</td><td align=\"center\">SCORE </td> <td align=\"center\">SUBMITTED ANSWER</td><td align=\"center\">TIME TAKEN</td></tr>";
+					var totalscore=0;
+					for(var i=0;i<data.question.length;i++){
+						if(data.question[i].q_score==1) {
+							str=str+"<tr class=\"success\">";
+							totalscore=totalscore+data.question[i].q_score;
+						} else {
+							if(data.question[i].submittedans!="skip")
+								str=str+"<tr class=\"danger\">";
+							else
+								str=str+"<tr>";
+						}
+						str=str+"<td align=\"center\">"+data.question[i].currentQuestion+"</td>";
+						str=str+"<td align=\"center\">"+data.question[i].q_score+"</td>";
+						str=str+"<td align=\"center\">"+data.question[i].submittedans+"</td>";
+						if(data.question[i].responsetime!=null)
+							str=str+"<td align=\"center\">"+data.question[i].responsetime.toFixed(2)+"</td></tr>";
+						else
+							str=str+"<td align=\"center\">"+data.question[i].responsetime+"</td></tr>";
+					}
+					str=str+"<tr><td align=\"center\">Total Score=</td><td align=\"center\">"+totalscore+"</td></tr>";
+					str=str+"</table>";
+					$("#ch1").replaceWith(str);
+			    },
+			    error: function () {
+					alert("failure");
+			    }
+			});
+		}
+	</script>
+</head>
+<body onload="showresult()">
+	<div id="ch1"></div>
+</body>
+</html>
+{% endautoescape %}

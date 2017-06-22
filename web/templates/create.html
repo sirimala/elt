@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html lang="en">
+<head>
+	<title>English Literacy Test</title>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+	<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css">
+	<link href="//code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" rel="Stylesheet"></link>
+	<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+	<script src="//code.jquery.com/ui/1.10.2/jquery-ui.js" ></script>
+</head>
+<body style='padding: 0px; background: #eee' class="container-fluid">
+	<nav class="navbar navbar-inverse" style="margin-bottom: 0px">
+	  <div class="container-fluid">
+	    <div class="navbar-header">
+	      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+	        <span class="sr-only">Toggle navigation</span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	        <span class="icon-bar"></span>
+	      </button>
+	      <a class="navbar-brand" href="/admin">Admin Dashboard</a>
+	    </div>
+
+	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+	      <ul class="nav navbar-nav navbar-right">
+	        <li><a href="/create">Create Test</a></li>
+	        <li class="dropdown">	
+	          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{{session["adminemail"]}} <span class="caret"></span></a>
+	          <ul class="dropdown-menu">
+	            <li role="separator" class="divider"></li>
+	            <li><a href="/logout">Logout</a></li>
+	          </ul>
+	        </li>
+	      </ul>
+	    </div><!-- /.navbar-collapse -->
+	  </div><!-- /.container-fluid -->
+	</nav>
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-md-6 col-sm-12 panel" style="background: #eee; padding-left: 3%; padding-right: 3%">
+				<br><h3>Create Test</h3>
+				<hr style="border-top: 1px solid black">
+				<form method="post" action="/create" enctype=multipart/form-data>
+				  <div class="form-group">
+				    <label for="name">Name of the Test</label>
+				    <input type="text" class="form-control" id="name" name="name" placeholder="Enter a Unique Name">
+				  </div>
+				  <div class="form-group">
+				    <label for="jsonfile">Question Paper (<a href="#" id="qinfo">hide</a>)</label>
+				    <p class="help-block">
+					    <ul id="help-block" style="background: antiquewhite; padding-top: 10px; padding-bottom: 10px; border-radius: 5px">
+					    	<li>One Template json and atleast one Section json are must.</li>
+					    	<li>QP_template.json</li>
+					    	<li>(Section1).json</li>
+					    	<li>(Section2).json</li>
+					    	<li>(Section3).json ....</li>
+					    	<li>Please include valid JSON files.</li>
+					    </ul> 
+				    </p>
+				    <input type="file" name="files" multiple="multiple" accept=".json">
+				  </div>
+				  <div class="form-group">
+					<label for="studentslist">Add Students</label><br>
+					<textarea id="studentslist" size="50" name="studentslist" class="form-control"></textarea>
+				  </div>
+				  <button type="submit" class="btn btn-primary">Create Test</button>
+				</form>
+				<br>
+			</div>
+			<div class="col-md-6 col-sm-12" style="background: white">
+				<br><h3>Result</h3>
+				<hr style="border-top: 1px solid black">
+				{# {% if session["message"].name %}
+				  <div class="alert alert-success">
+			  		<strong>Selected Name is Valid.</strong>
+				  </div>
+				{% endif %}
+				{% if session["message"].json %}
+				  <div class="alert alert-success">
+			  		<strong>Uploaded JSON's are Valid.</strong>
+				  </div>
+				{% else %}
+					<div class="alert alert-warning">
+				  		<strong>Uploaded JSON's are not Valid. Below is the detailed Report.</strong>
+					</div>
+					{% for message in session["message"].messages %}
+					  <div class="alert alert-warning">
+				  		<strong>{{session}}</strong>
+					  </div>
+					{% endfor %}
+				{% endif %} #}
+				{% for message in session['message'] %}
+					<h4>{{message}}</h4>
+					<p>{{session['message'][message]}}</p>
+				{% endfor %}
+			</div>
+		</div>
+	</div>
+</body>
+<script type="text/javascript">
+	
+	$( "#qinfo" ).click(function() {
+	  $( "#help-block" ).slideToggle( "slow" );
+	});
+
+	// code for auto-suggesting student email id's
+	$( function() {
+	    function split( val ) {
+	      return val.split( /,\s*/ );
+	    }
+	    function extractLast( term ) {
+	      return split( term ).pop();
+	    }
+	 
+	    $( "#studentslist" )
+	      .on( "keydown", function( event ) {
+	        if ( event.keyCode === $.ui.keyCode.TAB &&
+	            $( this ).autocomplete( "instance" ).menu.active ) {
+	          event.preventDefault();
+	        }
+	      })
+	      .autocomplete({
+	        minLength: 0,
+	        source: function( request, response ) {
+	          $.getJSON("{{url_for('autocomplete')}}",{
+	            q: extractLast(request.term),
+	          }, function(data) {
+	            response($.ui.autocomplete.filter(data.matching_results, extractLast( request.term )));
+	          });
+	        },
+	        focus: function() {
+	          return false;
+	        },
+	        select: function( event, ui ) {
+	          var terms = split( this.value );
+	          terms.pop();
+	          if ( terms.indexOf(ui.item.value) == -1)
+	          	terms.push( ui.item.value );
+	          	terms.push( "" );
+	          	this.value = terms.join( ", " );
+	          return false;
+	        }
+	      });
+	  });
+</script>
+</html>

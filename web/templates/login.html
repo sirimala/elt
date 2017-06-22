@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html lang="en">
+<head>
+	<title>English Literacy Test</title>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+
+	<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+</head>
+<body class="container-fluid">
+	<br><div class="row">
+		<div class="col-md-4"></div>
+		<div class="col-md-4 panel panel-default">
+			<h1 class="text-center">Login</h1><hr>
+			{% if error %}
+			<div class="alert alert-warning">
+			  <strong>{{error}}</strong>
+			</div>
+			{% endif %}
+			<form method="post">
+			  <div class="form-group">
+			    <label for="email">Email address</label>
+			    <input name="email" type="email" class="validate form-control" required="" aria-required="true" id="email" placeholder="Email">
+			  </div>
+			  <div class="form-group">
+			    <label for="password">Password</label>
+			    <input name="password" type="password" class="validate form-control" required="" aria-required="true" id="password" placeholder="Password">
+			  </div>
+			  <button type="submit" class="btn btn-primary text-center">Submit</button>
+			</form><br>
+			<!-- <form method="post">
+				<label>Username: </label><input id="email" name="email" type="email" class="validate" required="" aria-required="true"><br><br>
+				<label>Password: </label><input id="password" name="password" type="password" class="validate" required="" aria-required="true"><br><br>
+				<input type="submit">
+			</form> -->	
+		</div>
+		<div class="col-md-4"></div>
+	</div>
+</body>
+</html>
