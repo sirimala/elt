@@ -34,6 +34,7 @@ cd to newly cloned repository
 
 Directory structure may look similar this
 
+structure:
 .
 ├── docker-compose.yml
 ├── nginx
