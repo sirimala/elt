@@ -135,7 +135,7 @@ Next, let’s fire up the containers with Docker Compose and get the Flask app a
 ```
 Docker Compose
 Take a look at the docker-compose.yml file:
-
+```
 web:
   restart: always
   build: ./web
@@ -174,6 +174,7 @@ postgres:
     - data
   ports:
     - "5432:5432"
+```
 Here, we’re defining four services – web, nginx, postgres, and data.
 
 First, the web service is built via the instructions in the Dockerfile within the “web” directory – where the Python environment is setup, requirements are installed, and the Flask app is fired up on port 8000. That port is then forwarded to port 80 on the host environment – e.g., the Docker Machine. This service also adds environment variables to the container that are defined in the .env file.
@@ -181,11 +182,10 @@ The nginx service is used for reverse proxy to forward requests either to the Fl
 Next, the postgres service is built from the the official PostgreSQL image from Docker Hub, which install Postgres and runs the server on the default port 5432.
 Finally, notice how there is a separate volume container that’s used to store the database data, data. This helps ensure that the data persists even if the Postgres container is completely destroyed.
 Now, to get the containers running, build the images and then start the services:
-
+```
 $ docker-compose build
 $ docker-compose up -d
-Grab a cup of coffee. Or two. Check out the Real Python courses. This will take a while the first time you run it.
-
+```
 We also need to create the database table:
 
 $ docker-compose run web /usr/local/bin/python create_db.py
