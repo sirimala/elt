@@ -197,10 +197,9 @@ class Users(db.Model):
     registered_time = db.Column(db.DateTime(), default=datetime.utcnow)
     password_last_time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __init__(self, name, pin, emailid):
-        self.name = name
-        self.pin = pin
+    def __init__(self, emailid, password):
         self.emailid = emailid
+        self.password = password
 
 class AdminDetails(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -786,8 +785,14 @@ def registration():
         start_date = datetime.utcnow()
         end_date = datetime.utcnow()
         message = "registration success, Check your mail for verification request"
-        email = request.form["email"]
-        return render_template('registration.html', message=[message, email])
+        try:
+            email = request.form["email"]
+            user = Users(email, "AXNINFG")
+            db.session.add(user)
+            db.session.commit()
+        except Exception as e:
+            message = e
+        return render_template('registration.html', message=message)
 
 @app.route('/setpassword')
 def setpassword():
