@@ -780,18 +780,30 @@ def startquiz():
 @app.route('/registration', methods=['GET', 'POST'])
 def registration():
     if request.method == "GET":
+        logging.info("Get registration Form -< sreenath1")
+        print("Get registration Form -< sreenath2")
+        login_log.debug("Get registration Form")
         return render_template('registration.html')
     elif request.method == "POST":
+        login_log.debug("post registration Form")
+
         start_date = datetime.utcnow()
         end_date = datetime.utcnow()
         message = "registration success, Check your mail for verification request"
         try:
+            login_log.debug("post registration Form")
+
             email = request.form["email"]
             user = Users(email, "AXNINFG")
             db.session.add(user)
             db.session.commit()
+            login_log.debug(email)
+            login_log.debug("after commit registration Form")
+
         except Exception as e:
             message = e
+            login_log.debug(e)
+
         return render_template('registration.html', message=message)
 
 @app.route('/setpassword')
