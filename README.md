@@ -126,18 +126,20 @@ Copying certs to the local machine directory...
 Copying certs to the remote machine...
 Setting Docker configuration on the remote daemon...
 To see how to connect Docker to this machine, run: docker-machine env dev
-The create command setup a “machine” (called dev) for Docker development. In essence, it downloaded boot2docker and started a VM with Docker running. Now just point the Docker client at the dev machine via:
+The create command setup a “machine” (called dev) for Docker development. In essence, it downloaded boot2docker and started a VM with Docker running. 
 ```
+Now just point the Docker client at the dev machine via:
 $ eval "$(docker-machine env dev)"
+
 Run the following command to view the currently running Machines:
-```
+
 $ docker-machine ls
 NAME      ACTIVE   DRIVER       STATE     URL                         SWARM
 dev       *        virtualbox   Running   tcp://192.168.99.100:2376
 Next, let’s fire up the containers with Docker Compose and get the Flask app and Postgres database up and running.
 ```
 Docker Compose
-Take a look at the docker-compose.yml file:
+Take a look at the `docker-compose.yml` file:
 ```
 web:
   restart: always
