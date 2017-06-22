@@ -128,6 +128,7 @@ Setting Docker configuration on the remote daemon...
 To see how to connect Docker to this machine, run: docker-machine env dev
 The create command setup a “machine” (called dev) for Docker development. In essence, it downloaded boot2docker and started a VM with Docker running. 
 ```
+```
 Now just point the Docker client at the dev machine via:
 $ eval "$(docker-machine env dev)"
 
