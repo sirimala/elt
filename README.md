@@ -24,10 +24,12 @@ Prerequisites:
 
 Verify the installation:
 ```
+$ docker --version
+Docker version 17.03.1-ce, build c6d412e (version might be different)
 $ docker-machine --version
-docker-machine version 0.5.0 (04cfa58) (version might be different)
+docker-machine version 0.12.0, build 45c69ad (version might be different)
 $ docker-compose --version
-docker-compose version: 1.5.0 (version might be different)
+docker-compose version 1.13.0, build 1719ceb (version might be different)
 ```
 Next clone the project using `git clone https://github.com/sirimala/elt.git`
 
