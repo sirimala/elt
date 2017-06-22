@@ -33,8 +33,7 @@ Next clone the project using `git clone https://github.com/sirimala/elt.git`
 cd to newly cloned repository
 
 Directory structure may look similar this
-
-structure:
+```
 .
 ├── docker-compose.yml
 ├── nginx
@@ -109,10 +108,10 @@ structure:
         ├── registration.html
         ├── set_password.html
         └── testresult.html
-
+```
 Docker Machine
 To start Docker Machine, first make sure you’re in the project root and then simply run:
-
+```
 $ docker-machine create -d virtualbox dev;
 Running pre-create checks...
 Creating machine...
@@ -125,15 +124,15 @@ Copying certs to the remote machine...
 Setting Docker configuration on the remote daemon...
 To see how to connect Docker to this machine, run: docker-machine env dev
 The create command setup a “machine” (called dev) for Docker development. In essence, it downloaded boot2docker and started a VM with Docker running. Now just point the Docker client at the dev machine via:
-
+```
 $ eval "$(docker-machine env dev)"
 Run the following command to view the currently running Machines:
-
+```
 $ docker-machine ls
 NAME      ACTIVE   DRIVER       STATE     URL                         SWARM
 dev       *        virtualbox   Running   tcp://192.168.99.100:2376
 Next, let’s fire up the containers with Docker Compose and get the Flask app and Postgres database up and running.
-
+```
 Docker Compose
 Take a look at the docker-compose.yml file:
 
