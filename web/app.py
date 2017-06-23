@@ -797,7 +797,9 @@ def registration():
 
             email = request.form["email"]
             exists = db.session.query(Users).filter_by(emailid=email).scalar() is not None
-            if not exists:
+            if email[-9:] != ".rgukt.in":
+                message = "Email ID must be from RGUKT"
+            elif not exists:
                 user = Users(email, generate_unique_code())
                 db.session.add(user)
                 db.session.commit()

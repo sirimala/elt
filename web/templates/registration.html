@@ -3,9 +3,13 @@
 {%block script%}
 <script>
 	$(function() {
-		$("submit").click(function(){
-			email = "";
-			verify_email(email);
+		$("form").on("submit", function(){
+			email = $("#email").val();
+    		var organization = email.substr(-9);
+    		if(organization != ".rgukt.in"){
+    			$("#message").text("Email ID must be from RGUKT");
+    			return false;
+    		}
 		});
 	});
 </script>
@@ -25,7 +29,7 @@ form {
 <div class="container centered">
 	<form class="form-horizontal" method="post">
 		<legend>Registration</legend>
-		<p>{{message}}</p>
+		<p id="message">{{message}}</p>
 		<div class="form-group">
 			<div>
 			    <label class="sr-only" for="email">Email address:</label>
