@@ -194,6 +194,7 @@ class Users(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     emailid = db.Column(db.String(180), unique=True)
     password = db.Column(db.String(80))
+    user_type = db.Column(db.String(10), default="student")
     verified = db.Column(db.String(80), default=False)
     registered_time = db.Column(db.DateTime(), default=datetime.utcnow)
     password_last_time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -479,7 +480,18 @@ def getAnswer(qid):
                         if op[0] == "=":
                             return op[1:len(op)]
 
+def login_required(func):
+    @wraps(func)
+    def decorated_function(*args, **kwargs): 
+        user = session['user'] if 'user' in session else None
+        if not user:
+            return render_template('login.html')
+        return func(*args, **kwargs)
+    return decorated_function
+
+
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
 
@@ -780,6 +792,55 @@ def startquiz():
 
 def generate_unique_code():
     return str(uuid.uuid1()).replace("-", "")
+
+
+def valid_user_login(email, password):
+    user = Users.query.filter_by(emailid=email, password=password).first()
+    if user:
+        return user
+    return None
+
+@app.route('/student', methods=['GET'])
+@login_required
+def student():
+    if request.method == "GET":
+        return render_template('student.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == "GET":
+        return render_template('login.html')
+
+    if request.method == "POST":
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+
+        email = request.form['email']
+        password = request.form['password']
+        user = valid_user_login(email, password)
+        if user:
+            email = user.emailid
+            user_type = user.user_type
+            session['user'] = {}
+            session['user']['email'] = email
+            session['user']['user_type'] = user_type
+
+            message = "You are logged in as %s" % email
+            
+            login_log.debug("Logged in as %s with IP %s" % (email, ip_address))
+            return redirect(url_for(user_type))
+        else:
+            error = "Invalid Credentials"
+            
+            login_log.debug("Tried to login in as %s from IP %s, but Invalid Credentials." % (email, ip_address))
+            return render_template('login.html', error=error)
+
+@app.route('/logout1')
+def logout1():
+    ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+    login_log.debug("%s logged out with IP %s." % (session["adminemail"], ip_address))
+    
+    session.pop('user', None)
+    return redirect(url_for('login'))
 
 @app.route('/registration', methods=['GET', 'POST'])
 def registration():
