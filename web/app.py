@@ -17,6 +17,7 @@ from werkzeug.utils import secure_filename
 from flask import json as fJson
 import logging
 from config import BaseConfig
+import uuid
 
 app = Flask(__name__, static_url_path='')
 app.config['UPLOAD_FOLDER'] = APP_STATIC_JSON
@@ -777,11 +778,12 @@ def endtest():
 def startquiz():
     return render_template('quiz.html')
 
+def generate_unique_code():
+    return str(uuid.uuid1()).replace("-", "")
+
 @app.route('/registration', methods=['GET', 'POST'])
 def registration():
     if request.method == "GET":
-        logging.info("Get registration Form -< sreenath1")
-        print("Get registration Form -< sreenath2")
         login_log.debug("Get registration Form")
         return render_template('registration.html')
     elif request.method == "POST":
@@ -794,11 +796,16 @@ def registration():
             login_log.debug("post registration Form")
 
             email = request.form["email"]
-            user = Users(email, "AXNINFG")
-            db.session.add(user)
-            db.session.commit()
-            login_log.debug(email)
-            login_log.debug("after commit registration Form")
+            exists = db.session.query(Users).filter_by(emailid=email).scalar() is not None
+            if not exists:
+                user = Users(email, generate_unique_code())
+                db.session.add(user)
+                db.session.commit()
+                login_log.debug(email)
+                login_log.debug("after commit registration Form")
+            else:
+                message = str(email) + " already exists, Please contact admin"
+
 
         except Exception as e:
             message = e

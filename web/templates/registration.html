@@ -1,12 +1,14 @@
 {%extends "base.html"%}
 {%block title%}Registration Page{%endblock%}
 {%block script%}
+<script>
 	$(function() {
 		$("submit").click(function(){
 			email = "";
 			verify_email(email);
 		});
 	});
+</script>
 {%endblock%}
 {%block styles%}
 <style type="text/css">
