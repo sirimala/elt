@@ -1,0 +1,12 @@
+{%extends "base.html"%}
+{%block title%}Unauthorized Access{%endblock%}
+{%block body%}
+<div class="container">
+{{log}}
+	{%if session['user']%}
+		Hello {{session['user']['email']}},
+		You currently have access as a {{session['user']['role']}}.
+		Please <a href="/logout">login</a> as a admin to access this page.
+	{%endif%}
+</div>
+{%endblock%}

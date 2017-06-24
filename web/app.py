@@ -18,9 +18,21 @@ from flask import json as fJson
 import logging
 from config import BaseConfig
 import uuid
+import base64
+from flask_mail import Mail, Message
 
 app = Flask(__name__, static_url_path='')
+mail=Mail(app)
+
+app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = 'rguktemailtest@gmail.com'
+app.config['MAIL_PASSWORD'] = 'gmailforme'
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
+mail = Mail(app)
 app.config['UPLOAD_FOLDER'] = APP_STATIC_JSON
+
 
 app.secret_key = "some_secret"
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/GCT'
@@ -173,6 +185,18 @@ def to_pretty_json(value):
     return json.dumps(value, sort_keys=True, indent=4, separators=(',', ': '))
 
 app.jinja_env.filters['tojson_pretty'] = to_pretty_json
+
+#A list of uri for each role
+permissions_object = {
+    'student':[
+        '/',
+        '/student'
+    ],
+    'admin':[
+        '/',
+        '/student',
+        '/admin'
+    ]}
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -486,9 +510,17 @@ def login_required(func):
         user = session['user'] if 'user' in session else None
         if not user:
             return render_template('login.html')
+        if request.path not in user['permissions']:
+            return render_template('unauthorized.html', log=user['permissions'])
         return func(*args, **kwargs)
     return decorated_function
 
+@app.route("/testmail")
+def testmail():
+   msg = Message('Hello', sender = 'RGUKT QUIZ <rguktemailtest@gmail.com>', recipients = ['sirimala.sreenath@gmail.com'])
+   msg.body = "Hello Flask message sent from Flask-Mail"
+   mail.send(msg)
+   return "Sent"
 
 @app.route('/')
 @login_required
@@ -806,6 +838,19 @@ def student():
     if request.method == "GET":
         return render_template('student.html')
 
+@app.route('/verify/<email>/<code>', methods=['GET'])
+def verify_unique_code(email, code):
+    if request.method == 'GET':
+        email = base64.b64decode(email)
+        result = Users.query.filter_by(emailid=email.decode(), password=code).first()
+        if result:
+            result.verified = True
+            db.session.add(result)
+            db.session.commit()
+            return render_template("login.html",
+                success="You are successfully activated your account.\n Please login")
+        return render_template("unauthorized.html", log={'result':result, 'code':code, 'email':email.decode()})
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == "GET":
@@ -817,42 +862,60 @@ def login():
         email = request.form['email']
         password = request.form['password']
         user = valid_user_login(email, password)
-        if user:
-            email = user.emailid
-            user_type = user.user_type
-            session['user'] = {}
-            session['user']['email'] = email
-            session['user']['user_type'] = user_type
 
-            message = "You are logged in as %s" % email
-            
-            login_log.debug("Logged in as %s with IP %s" % (email, ip_address))
-            return redirect(url_for(user_type))
+        if user:
+            if user.verified:
+                email = user.emailid
+                role = user.user_type
+                session['user'] = {}
+                session['user']['email'] = email
+                session['user']['role'] = role
+                session['user']['permissions'] = permissions_object[role]
+
+                message = "You are logged in as %s" % email
+                logging.debug(user.verified)
+                login_log.debug("Logged in as %s with IP %s" % (email, ip_address))
+                return redirect(url_for(role))
+            else:
+                logging.debug("Here is one thing working")
+
+                error = "Please activate your account, using the link we sent to your registered email"
+                login_log.debug("Tried to login in as %s from IP %s, but Account not activated." % (email, ip_address))
+
         else:
             error = "Invalid Credentials"
             
             login_log.debug("Tried to login in as %s from IP %s, but Invalid Credentials." % (email, ip_address))
-            return render_template('login.html', error=error)
+        return render_template('login.html', error=error)
 
 @app.route('/logout1')
 def logout1():
     ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
-    login_log.debug("%s logged out with IP %s." % (session["adminemail"], ip_address))
+    login_log.debug("%s logged out with IP %s." % (session['user']["email"], ip_address))
     
     session.pop('user', None)
     return redirect(url_for('login'))
 
+def sendMail(encode='', code=''):
+    login_log.debug("send mail function")
+    msg = Message('Account Verification for RGUKT QUIZ', sender = 'RGUKT QUIZ <rguktemailtest@gmail.com>', recipients = ['sirimala.sreenath@gmail.com'])
+    msg.html = """Hi Receipient,\n Please click on link given below to activate your account. 
+    <a href=%s/verify/%s/%s """ % (request.host, encode, code)
+    mail.send(msg)
+    return "Sent"
+
 @app.route('/registration', methods=['GET', 'POST'])
 def registration():
+    if session['user']:
+        return redirect(url_for(session['user']['role']))
     if request.method == "GET":
         login_log.debug("Get registration Form")
         return render_template('registration.html')
     elif request.method == "POST":
         login_log.debug("post registration Form")
 
-        start_date = datetime.utcnow()
-        end_date = datetime.utcnow()
-        message = "registration success, Check your mail for verification request"
+        message = ""
+        message_staus = ""
         try:
             login_log.debug("post registration Form")
 
@@ -860,21 +923,32 @@ def registration():
             exists = db.session.query(Users).filter_by(emailid=email).scalar() is not None
             if email[-9:] != ".rgukt.in":
                 message = "Email ID must be from RGUKT"
+                message_staus = "error"
+
             elif not exists:
-                user = Users(email, generate_unique_code())
+                code = generate_unique_code()
+                user = Users(email, code)
                 db.session.add(user)
                 db.session.commit()
+                encode = base64.b64encode(email.encode()).decode()
+                
+                sendMail(encode, code)
+
                 login_log.debug(email)
                 login_log.debug("after commit registration Form")
+                message = "registration success, Check your mail for verification request"
+                message_staus = "success"
             else:
                 message = str(email) + " already exists, Please contact admin"
-
+                message_staus = "error"
 
         except Exception as e:
+            session.rollback()
             message = e
+            message_staus = "error"
             login_log.debug(e)
 
-        return render_template('registration.html', message=message)
+        return render_template('registration.html', message=message, status=message_staus)
 
 @app.route('/setpassword')
 def setpassword():

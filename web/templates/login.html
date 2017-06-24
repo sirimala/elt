@@ -24,6 +24,11 @@
 			  <strong>{{error}}</strong>
 			</div>
 			{% endif %}
+			{% if success %}
+			<div class="alert alert-success">
+			  <strong>{{success}}</strong>
+			</div>
+			{% endif %}
 			<form method="post">
 			  <div class="form-group">
 			    <label for="email">Email address</label>

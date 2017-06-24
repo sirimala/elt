@@ -29,7 +29,17 @@ form {
 <div class="container centered">
 	<form class="form-horizontal" method="post">
 		<legend>Registration</legend>
-		<p id="message">{{message}}</p>
+		{% if message_status == "error" %}
+		<div class="alert alert-warning">
+		  <strong>{{message}}</strong>
+		</div>
+		{% endif %}
+		{% if message_status == "success" %}
+		<div class="alert alert-warning">
+		  <strong>{{message}}</strong>
+		</div>
+		{% endif %}
+		<p id="message"></p>
 		<div class="form-group">
 			<div>
 			    <label class="sr-only" for="email">Email address:</label>
