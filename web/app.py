@@ -890,8 +890,8 @@ def login():
             login_log.debug("Tried to login in as %s from IP %s, but Invalid Credentials." % (email, ip_address))
         return render_template('login.html', error=error)
 
-@app.route('/logout1')
-def logout1():
+@app.route('/logout')
+def logout():
     ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
     login_log.debug("%s logged out with IP %s." % (session['user']["email"], ip_address))
     
@@ -957,57 +957,60 @@ def setpassword():
     if 'email' in session: 
         return render_template('set_password.html')
 #==================================================== ADMIN PAGE =====================================================
-def valid_admin_login(email, password):
-    result = AdminDetails.query.filter_by(email=email).first()
-    if str(result) == str(password):
-        return True
-    return False
+# def valid_admin_login(email, password):
+#     result = AdminDetails.query.filter_by(email=email).first()
+#     if str(result) == str(password):
+#         return True
+#     return False
 
-@app.route('/adminlogin', methods=['GET', 'POST'])
-def adminlogin():
-    ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+# @app.route('/adminlogin', methods=['GET', 'POST'])
+# def adminlogin():
+#     ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
     
-    if db.session.query(AdminDetails).first() is None:
-        row = AdminDetails("admin@quiz.in","admin")
-        db.session.add(row)
-        db.session.commit()
+#     if db.session.query(AdminDetails).first() is None:
+#         row = AdminDetails("admin@quiz.in","admin")
+#         db.session.add(row)
+#         db.session.commit()
 
-        login_log.debug("Created Default Admin Credentials.")
+#         login_log.debug("Created Default Admin Credentials.")
     
-    message = None
-    error = None
+#     message = None
+#     error = None
     
-    if request.method == "POST":
-        email = request.form['email']
-        password = request.form['password']
+#     if request.method == "POST":
+#         email = request.form['email']
+#         password = request.form['password']
         
-        if valid_admin_login(email,password):
-            session['adminemail'] = email
-            message = "You are logged in as %s" % email
+#         if valid_admin_login(email,password):
+#             session['adminemail'] = email
+#             message = "You are logged in as %s" % email
             
-            login_log.debug("Logged in as %s with IP %s" % (email, ip_address))
-            return redirect(url_for('admin'))
-        else:
-            error = "Invalid Credentials"
+#             login_log.debug("Logged in as %s with IP %s" % (email, ip_address))
+#             return redirect(url_for('admin'))
+#         else:
+#             error = "Invalid Credentials"
             
-            login_log.debug("Tried to login in as %s from IP %s, but Invalid Credentials." % (email, ip_address))
-            return render_template('login.html', error=error)
+#             login_log.debug("Tried to login in as %s from IP %s, but Invalid Credentials." % (email, ip_address))
+#             return render_template('login.html', error=error)
     
-    return render_template('login.html')
+#     return render_template('login.html')
 
-@app.route('/logout')
-def logout():
-    ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
-    login_log.debug("%s logged out with IP %s." % (session["adminemail"], ip_address))
+# @app.route('/logout')
+# def logout():
+#     ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+#     login_log.debug("%s logged out with IP %s." % (session["adminemail"], ip_address))
     
-    session.pop('adminemail', None)
-    return redirect(url_for('adminlogin'))
+#     session.pop('adminemail', None)
+#     return redirect(url_for('adminlogin'))
 
 @app.route('/admin')
+@login_required
 def admin():
-    if 'adminemail' in session:
-        return render_template('admin.html')    
-    return redirect(url_for('adminlogin'))
+    return render_template('admin.html')    
+    
+    # if 'adminemail' in session:
+    #     return render_template('admin.html')    
+    # return redirect(url_for('adminlogin'))
 
 def checkStudentTests(emailid):
     return StudentTests.query.filter(StudentTests.emailid == emailid).first()
