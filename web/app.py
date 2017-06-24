@@ -236,9 +236,10 @@ class Tests(db.Model):
     creator = db.Column(db.String(180))
     time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __init__(self, name, creator):
+    def __init__(self, name, creator, hosting_date):
         self.name = name
         self.creator = creator
+        self.hosting_date = hosting_date
         self.time = datetime.utcnow()
         # self.json = json
 
@@ -882,11 +883,8 @@ def validate_name(name):
 
 def validate_date(date):
     today = datetime.now()
-    print(today)
-    print(datetime.strptime(date, '%d,%m,%Y').datetime())
-    return datetime.strptime(date, '%d,%m,%Y').datetime() > today
+    return datetime.strptime(date, '%d/%m/%Y') > today
         
-
 def validate_file(file_name,data):
     file_report = {}
     file_report["name"] = file_name
