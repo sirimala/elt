@@ -513,7 +513,7 @@ def login_required(func):
         if not user:
             return render_template('login.html')
         if request.path not in user['permissions']:
-            return render_template('unauthorized.html', log=user['permissions'])
+            return render_template('unauthorized.html')
         return func(*args, **kwargs)
     return decorated_function
 
@@ -844,17 +844,28 @@ def student():
 def verify_unique_code(email, code):
     if request.method == 'GET':
         email = base64.b64decode(email)
-        result = Users.query.filter_by(emailid=email.decode(), password=code).first()
-        if result:
-            result.verified = True
-            db.session.add(result)
-            db.session.commit()
-            return render_template("login.html",
-                success="You are successfully activated your account.\n Please login")
-        return render_template("unauthorized.html", log={'result':result, 'code':code, 'email':email.decode()})
+        user = Users.query.filter_by(emailid=email.decode(), password=code).first()
+        if user:
+            try:
+                user.verified = True
+                db.session.add(user)
+                db.session.commit()
+                session['user'] = {}
+                session['user']['email'] = user.emailid
+                session['user']['permissions'] = []
+                session['user']['allow_to_set_password'] = True
+                return render_template("set_password.html",
+                    success="You are successfully activated your account.\n Please login")
+            except Exception as e:
+                return render_template("error.html", error=e)
+        return render_template("unauthorized.html")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if 'user' in session:
+        if 'role' in session['user']:
+            return redirect(url_for(session['user']['role']))
+
     if request.method == "GET":
         return render_template('login.html')
 
@@ -866,13 +877,14 @@ def login():
         user = valid_user_login(email, password)
 
         if user:
-            if user.verified:
+            if user.verified != "false":
                 email = user.emailid
                 role = user.user_type
                 session['user'] = {}
                 session['user']['email'] = email
                 session['user']['role'] = role
                 session['user']['permissions'] = permissions_object[role]
+                session['user']['allow_to_set_password'] = True
 
                 message = "You are logged in as %s" % email
                 logging.debug(user.verified)
@@ -892,6 +904,9 @@ def login():
 
 @app.route('/logout')
 def logout():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
     ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
     login_log.debug("%s logged out with IP %s." % (session['user']["email"], ip_address))
     
@@ -908,7 +923,7 @@ def sendMail(encode='', code=''):
 
 @app.route('/registration', methods=['GET', 'POST'])
 def registration():
-    if session['user']:
+    if 'user' in session:
         return redirect(url_for(session['user']['role']))
     if request.method == "GET":
         login_log.debug("Get registration Form")
@@ -952,10 +967,37 @@ def registration():
 
         return render_template('registration.html', message=message, status=message_staus)
 
-@app.route('/setpassword')
+@app.route('/setpassword', methods=['GET', 'POST'])
 def setpassword():
-    if 'email' in session: 
+    if 'user' not in session:
+        return redirect(url_for("login"))
+    if 'allow_to_set_password' not in session['user']:
+        print(session['user'])
+        return redirect(url_for("login"))
+    if request.method == "GET":
         return render_template('set_password.html')
+    elif request.method == "POST":
+        email = session["user"]['email']
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        if password == confirm_password:
+            user = Users.query.filter_by(emailid=email).first()
+            if user:
+                user.password = password
+                db.session.add(user)
+                db.session.commit()
+                message = "Password successfully change, Please login"
+                return render_template('login.html', success=message)
+            else:
+                message = "Your email address dosen't exist, Please register"
+                message_staus = "error"
+                return render_template("registration.html", message=message, status=message_staus)
+
+        else:
+            message = "Password and ConfirmPassword should match"
+            message_staus = "error"
+
+            return render_template("set_password.html", message=message, status=message_staus)
 #==================================================== ADMIN PAGE =====================================================
 # def valid_admin_login(email, password):
 #     result = AdminDetails.query.filter_by(email=email).first()
