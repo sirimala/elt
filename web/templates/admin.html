@@ -27,7 +27,7 @@
 	      </button>
 	      <a class="navbar-brand" href="#">Admin Dashboard</a>
 	    </div>
-		{%if session["adminemail"]%}
+		{%if session["adminemail"] != None%}
 	    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 	      <ul class="nav navbar-nav navbar-right">
 	        <li><a href="/create">Create Test</a></li>
