@@ -256,13 +256,15 @@ class Students(db.Model):
 class Tests(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True)
+    hosting_date = db.Column(db.String(80), unique=True)
     # json = db.Column(db.String(1000))
     creator = db.Column(db.String(180))
     time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __init__(self, name, creator):
+    def __init__(self, name, creator, hosting_date):
         self.name = name
         self.creator = creator
+        self.hosting_date = hosting_date
         self.time = datetime.utcnow()
         # self.json = json
 
@@ -1014,6 +1016,10 @@ def validate_name(name):
     result = Tests.query.filter_by(name=name).first()
     return result == None
 
+def validate_date(date):
+    today = datetime.now()
+    return datetime.strptime(date, '%d/%m/%Y') > today
+
 def validate_file(file_name,data):
     file_report = {}
     file_report["name"] = file_name
@@ -1051,6 +1057,9 @@ def create():
             test_name = request.form['name']
             nameValid = validate_name(test_name)
 
+            hosting_date = request.form['datepicker']
+            dateValid = validate_date(hosting_date)
+
             files = request.files.getlist("files")
             files_report = []
             for file in files:
@@ -1061,8 +1070,8 @@ def create():
                     save_file(test_name, file.filename, data)
                     files_report.append(file_report)
 
-            if nameValid and len(files_report)==len(files):
-                test = Tests(test_name, session["adminemail"])
+            if nameValid and len(files_report)==len(files) and dateValid:
+                test = Tests(test_name, session["adminemail"], hosting_date)
                 db.session.add(test)
                 db.session.commit()
 
