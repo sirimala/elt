@@ -13,4 +13,48 @@
 	  <button type="submit" class="btn btn-primary">Add Students</button>
 	</form>
 </div>
+{%block script%}
+<script type="text/javascript">
+	// code for auto-suggesting student email id's
+	$( function() {
+	    function split( val ) {
+	      return val.split( /,\s*/ );
+	    }
+	    
+	    function extractLast( term ) {
+	      return split( term ).pop();
+	    }
+	 	
+	    $( "#studentslist" )
+	      .on( "keydown", function( event ) {
+	        if ( event.keyCode === $.ui.keyCode.TAB &&
+	            $( this ).autocomplete( "instance" ).menu.active ) {
+	          event.preventDefault();
+	        }
+	      })
+	      .autocomplete({
+	        minLength: 0,
+	        source: function( request, response ) {
+	          $.getJSON("{{url_for('autocomplete')}}",{
+	            q: extractLast(request.term),
+	          }, function(data) {
+	            response($.ui.autocomplete.filter(data.matching_results, extractLast( request.term )));
+	          });
+	        },
+	        focus: function() {
+	          return false;
+	        },
+	        select: function( event, ui ) {
+	          var terms = split( this.value );
+	          terms.pop();
+	          if ( terms.indexOf(ui.item.value) == -1)
+	          	terms.push( ui.item.value );
+	          	terms.push( "" );
+	          	this.value = terms.join( ", " );
+	          return false;
+	        }
+	      });
+	  });
+</script>
+{%endblock%}
 {%endblock%}
