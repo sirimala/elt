@@ -16,533 +16,6 @@ import cgi
 from werkzeug.utils import secure_filename
 from flask import json as fJson
 import logging
-from config import BaseConfig
-import uuid
-import base64
-from flask_mail import Mail, Message
-
-app = Flask(__name__, static_url_path='')
-mail=Mail(app)
-
-app.config['MAIL_SERVER']='smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'rguktemailtest@gmail.com'
-app.config['MAIL_PASSWORD'] = 'gmailforme'
-app.config['MAIL_USE_TLS'] = False
-app.config['MAIL_USE_SSL'] = True
-mail = Mail(app)
-app.config['UPLOAD_FOLDER'] = APP_STATIC_JSON
-
-logHandler = logging.FileHandler('logs/login.log')
-logHandler.setLevel(logging.INFO)
-app.logger.addHandler(logHandler)
-app.logger.setLevel(logging.INFO)
-app.logger.info('Log message')
-login_log = app.logger
-
-app.secret_key = "some_secret"
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/GCT'
-app.config.from_object(BaseConfig)
-db = SQLAlchemy(app)
-
-# formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-# def setup_logger(name, log_file, level=logging.DEBUG):
-#     handler = logging.FileHandler(log_file)        
-#     handler.setFormatter(formatter)
-#     logger = logging.getLogger(name)
-#     logger.setLevel(level)
-#     logger.addHandler(handler)
-#     return logger
-
-# login_log = setup_logger('login_logger', 'logs/login.log')
-
-ALLOWED_EXTENSIONS = set(['json'])
-QP_TEMPLATE_SCHEMA = {
-    'name': {'type': 'string', 'required': True},
-    'section': {
-        'type': 'list', 'minlength': 1, 'required': True,
-        'schema': {
-            'type': 'dict', 
-            'schema': {
-                'name': {'type': 'string', 'required': True}, 
-                'subsection': {
-                    'type': 'list', 'minlength': 1, 'required': True,
-                    'schema': {
-                        'type': 'dict', 
-                        'schema': {
-                            'name': {'type': 'string', 'required': True},
-                            'count': {'type': 'string', 'required': True},
-                            'questions': {'type': 'list', 'maxlength': 0, 'required': True},
-                            'note': {'type': 'string', 'required': True},
-                            'types': {'type': 'string', 'required': True, 'allowed': ['video', 'record', 'passage', 'essay']},
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-RECORD_TYPE_SCHEMA = {
-    'name': {'type': 'string', 'required': True},
-    'questions': {
-        'type': 'list', 'minlength': 1, 'required': True,
-        'schema': {
-            'type': 'dict', 
-            'schema': {
-                'question': {'type': 'string', 'required': True}, 
-                'options': {'type': 'list', 'maxlength': 0, 'required': True},
-                'id': {'type': 'string', 'required': True},
-            }
-        }
-    },
-    'note': {'type': 'string', 'required': True},
-    'types': {'type': 'string', 'required': True, 'allowed': ['record']},
-}
-
-ESSAY_TYPE_SCHEMA = {
-    'name': {'type': 'string', 'required': True},
-    'questions': {
-        'type': 'list', 'minlength': 1, 'required': True,
-        'schema': {
-            'type': 'dict', 
-            'schema': {
-                'question': {'type': 'string', 'required': True}, 
-                'options': {'type': 'list', 'maxlength': 0, 'required': True},
-                'id': {'type': 'string', 'required': True},
-            }
-        }
-    },
-    'note': {'type': 'string', 'required': True},
-    'types': {'type': 'string', 'required': True, 'allowed': ['essay']},
-}
-
-PASSAGE_TYPE_SCHEMA = {
-    'name': {'type': 'string', 'required': True},
-    'types': {'type': 'string', 'required': True, 'allowed': ['passage']},
-    'passageArray': {
-        'type': 'list', 'minlength': 1, 'required': True,
-        'schema': {
-            'type': 'dict', 
-            'schema': {
-                'note': {'type': 'string', 'required': True},
-                'passage': {'type': 'string', 'required': True},
-                'questions': {
-                    'type': 'list', 'minlength': 1, 'required': True,
-                    'schema': {
-                        'type': 'dict', 
-                        'question': {'type': 'string', 'required': True},
-                        'options': {'type': 'list', 'minlength': 4, 'required': True},
-                        'id': {'type': 'string', 'required': True},
-                        'answer': {'type': 'string', 'required': True},
-                        'practicelinks': {'type': 'list', 'minlength': 0, 'required': True},
-                    }
-                }
-            }
-        }
-    }
-}
-
-VIDEO_TYPE_SCHEMA = {
-    'name': {'type': 'string', 'required': True},
-    'types': {'type': 'string', 'required': True, 'allowed': ['passage']},
-    'note': {'type': 'string', 'required': True},
-    'videoArray': {
-        'type': 'list', 'minlength': 1, 'required': True,
-        'schema': {
-            'type': 'dict', 
-            'schema': {
-                'link': {'type': 'string', 'required': True},
-                'questions': {
-                    'type': 'list', 'minlength': 1, 'required': True,
-                    'schema': {
-                        'type': 'dict', 
-                        'question': {'type': 'string', 'required': True},
-                        'options': {'type': 'list', 'minlength': 4, 'required': True},
-                        'id': {'type': 'string', 'required': True},
-                        'answer': {'type': 'string', 'required': True},
-                        'practicelinks': {'type': 'list', 'minlength': 0, 'required': True},
-                    }
-                }
-            }
-        }
-    }
-}
-
-validate_qp_template = Validator(QP_TEMPLATE_SCHEMA)
-validate_passage_template = True
-validate_video_template = True
-validate_essay_template = Validator(ESSAY_TYPE_SCHEMA)
-validate_record_template = Validator(RECORD_TYPE_SCHEMA)
-
-schema_type_mapping = {
-    'essay' :validate_essay_template,
-    'record' :validate_record_template,
-    'passage' :validate_record_template,
-    'video' :validate_record_template,
-}
-
-e1_start=801;e1_end=809;e2_start=1201;e2_end=1208;e3_start=1601;e3_end=1701;
-e4_start=1701;e4_end=1702;
-global status
-global errortype
-
-def to_pretty_json(value):
-    return json.dumps(value, sort_keys=True, indent=4, separators=(',', ': '))
-
-app.jinja_env.filters['tojson_pretty'] = to_pretty_json
-
-#A list of uri for each role
-permissions_object = {
-    'student':[
-        '/',
-        '/student'
-    ],
-    'admin':[
-        '/',
-        '/student',
-        '/admin'
-    ]}
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80))
-    emailid = db.Column(db.String(180), unique=True)
-    pin = db.Column(db.String(80))
-    testctime = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    def __init__(self, name, pin, emailid):
-        self.name = name
-        self.pin = pin
-        self.emailid = emailid
-
-class Users(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    emailid = db.Column(db.String(180), unique=True)
-    password = db.Column(db.String(80))
-    user_type = db.Column(db.String(10), default="student")
-    verified = db.Column(db.String(80), default=False)
-    registered_time = db.Column(db.DateTime(), default=datetime.utcnow)
-    password_last_time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    def __init__(self, emailid, password, user_type, verified):
-        self.emailid = emailid
-        self.password = password
-        self.user_type = user_type
-        self.verified = verified
-
-class AdminDetails(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(180), unique=True, default="vy@fju.us")
-    password = db.Column(db.String(1000), default="veda1997")
-
-    def __init__(self, email, password):
-        self.email = email
-        self.password = password
-
-    def __repr__(self):
-        return str(self.password)
-
-class Students(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80))
-    emailid = db.Column(db.String(180), unique=True)
-    rollno = db.Column(db.String(80))
-
-    def __init__(self, name, emailid, rollno):
-        self.name = name
-        self.emailid = emailid
-        self.rollno = rollno
-
-    def __repr__(self):
-        return str(self.name)+"::"+str(self.emailid)+"::"+str(self.rollno)
-
-class Tests(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), unique=True)
-    hosting_date = db.Column(db.String(80))
-    # json = db.Column(db.String(1000))
-    creator = db.Column(db.String(180))
-    time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    def __init__(self, name, creator, hosting_date):
-        self.name = name
-        self.creator = creator
-        self.hosting_date = hosting_date
-        self.time = datetime.utcnow()
-        # self.json = json
-
-    def __repr__(self):
-        return str(self.name)+"::"+str(self.time.strftime('%d - %m - %y'))
-
-class StudentTests(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    emailid = db.Column(db.String(180), unique=True)
-    testslist = db.Column(ARRAY(db.String(80)))
-
-    def __init__(self, emailid, testslist):
-        self.emailid = emailid
-        self.testslist = testslist
-
-    def getTests(self):
-        return self.testslist
-
-class UserAudio(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user = db.Column(db.String(80))
-    blob1 = db.Column(db.LargeBinary)
-    time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    def __init__(self, user, blob1):
-        self.user = user
-        self.blob1 = blob1
-
-class DataModel(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    url = db.Column(db.String(180))
-    blob = db.Column(db.LargeBinary)
-
-    def __init__(self, url, blob):
-        self.url = url
-        self.blob = blob 
-
-class userDetails(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120))
-    email=db.Column(db.String(120), unique=True)
-    phno = db.Column(db.String(120))
-    rollno = db.Column(db.String(120))
-    learningcenter = db.Column(db.String(120))
-
-    def __init__(self, name, email, phno, rollno, learningcenter):
-        self.name = name 
-        self.email = email 
-        self.phno = phno 
-        self.rollno = rollno 
-        self.learningcenter = learningcenter 
-
-class TestDetails(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email=db.Column(db.String(120))
-    test= db.Column(db.Boolean())
-    teststime=db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
-    delays=db.Column(db.Float())
-    testend= db.Column(db.Boolean())
-    lastPing = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
-    score = db.Column(db.Integer())
-    learningcenter = db.Column(db.String(120))
-
-    def __init__(self, **kwargs):
-        super(TestDetails, self).__init__(**kwargs)
-
-class Response(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80))
-    emailid = db.Column(db.String(180))
-    pin = db.Column(db.String(80))
-    testctime = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
-    submittedans = db.Column(db.Text)
-    responsetime = db.Column(db.Float)
-    q_score = db.Column(db.Integer)
-    q_status = db.Column(db.String(120))
-    time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow )
-    currentQuestion=db.Column(db.String(120))
-    serialno=db.Column(db.Integer)
-
-    def __init__(self, **kwargs):
-        super(Response, self).__init__(**kwargs)
-
-class Randomize(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user1=db.Column(db.String(120))
-    serialno=db.Column(db.Integer)
-    qno=db.Column(db.String(120))
-
-    def __init__(self, user1, serialno, qno):
-        self.user1 = user1 
-        self.serialno = serialno 
-        self.qno = qno 
-
-class EssayTypeResponse(db.Model):
-    """Sub model for storing user response for essay type questions"""
-    id = db.Column(db.Integer, primary_key=True)
-    useremailid = db.Column(db.String(120))
-    qid = db.Column(db.String(120))
-    ansText = db.Column(db.Text)
-    qattemptedtime = db.Column(db.Float)
-
-    def __init__(self, useremailid, qid, ansText, qattemptedtime):
-        self.useremailid = useremailid 
-        self.qid = qid 
-        self.ansText = ansText 
-        self.qattemptedtime = qattemptedtime 
-
-def getQuestionPaper(qid_list):
-    path = 'QP_template.json'
-    json_temp=json.loads(open(os.path.join(APP_STATIC_JSON,path)).read())
-    #print qid_list
-    i=0;j=0;k=0;l=0;m=0;n=0;p=0;q=0;r=0;s=0;t=0
-    for qid in qid_list:
-        qid=int(qid)
-        if qid in range(e1_start,e1_end):
-              e1_readjson=json.loads(open(os.path.join(APP_STATIC_JSON,'E1-Reading.json')).read())
-              for key in e1_readjson["passageArray"]:
-                    for qn in key["questions"]:
-                          pid=qn["id"]
-                          if int(pid) == qid:
-                                json_temp["section"][1]["subsection"][0]["passage"]=key["passage"]
-                                json_temp["section"][1]["subsection"][0]["questions"].append(qn)
-                                json_temp["section"][1]["subsection"][0]["questions"][m]["serialno"] = qid_list[qid]
-                                m +=1
-        if qid in range(e2_start,e2_end):
-              e2_lsnjson=json.loads(open(os.path.join(APP_STATIC_JSON,'E2-Listening.json')).read())
-              for key in e2_lsnjson["videoArray"]:
-                    for qn in key["questions"]:
-                          pid=qn["id"]
-                          if int(pid) == qid:
-                                json_temp["section"][0]["subsection"][0]["link"]=key["link"]
-                                json_temp["section"][0]["subsection"][0]["questions"].append(qn)
-                                json_temp["section"][0]["subsection"][0]["questions"][n]["serialno"] = qid_list[qid]
-                                n +=1
-        if qid in range(e3_start,e3_end):
-              e3_spkjson=json.loads(open(os.path.join(APP_STATIC_JSON,'E3-Speaking.json')).read())
-              for key in e3_spkjson["questions"]:
-                    if int(key["id"]) == qid:
-                          json_temp["section"][0]["subsection"][1]["questions"].append(key)
-                          json_temp["section"][0]["subsection"][1]["questions"][p]["serialno"] = qid_list[qid]
-                          p += 1
-        if qid in range(e4_start,e4_end):
-              e4_wrtjson=json.loads(open(os.path.join(APP_STATIC_JSON,'E4-Writing.json')).read())
-              for key in e4_wrtjson["questions"]:
-                    if int(key["id"]) == qid:
-                          json_temp["section"][1]["subsection"][1]["questions"].append(key)
-                          json_temp["section"][1]["subsection"][1]["questions"][q]["serialno"] = qid_list[qid]
-                          q += 1
-    return json_temp
-
-def generateQuestionPaper():
-    path = 'QP_template.json'
-    json_temp=json.loads(open(os.path.join(APP_STATIC_JSON,path)).read())
-    for key in json_temp:
-        if  key == "section":
-            section=json_temp[key]
-            for s in section:
-                for key in s:
-                    if key == "subsection":
-                        for subs in s[key]:
-                            cnt=int(subs["count"])
-                            name=subs["name"]
-                            types=subs["types"]
-                            #print name
-                            if name == "E2-Listening":
-                                #print name
-                                json_subs=json.loads(open(os.path.join(APP_STATIC_JSON,name+".json")).read())
-                                video_list=json_subs["videoArray"]
-                                serialno=range(0,len(video_list))
-                                shuffle(serialno)
-                                subs["link"]=video_list[serialno[0]]["link"]
-                                subs["questions"]=video_list[serialno[0]]["questions"]
-                                i=0
-                                for qn in subs["questions"]:
-                                    subs["questions"][i]["serialno"]=i+1
-                                    i +=1
-                            if types =="question" or types =="record":
-                                #print name
-                                json_subs=json.loads(open(os.path.join(APP_STATIC_JSON,name+".json")).read())
-                                qns_list=json_subs["questions"];
-                                serialno=range(0,len(qns_list))
-                                shuffle(serialno)
-                                for no in range(0,cnt):
-                                    subs["questions"].append(qns_list[serialno[no]])
-                                    subs["questions"][no]["serialno"]=no+1
-                            if types == "passage":
-                                #print name
-                                json_subs=json.loads(open(os.path.join(APP_STATIC_JSON,name+".json")).read())
-                                psglist=json_subs["passageArray"]
-                                serialno=range(0,len(psglist))
-                                shuffle(serialno)
-                                subs["questions"]=psglist[serialno[0]]["questions"]
-                                j=0
-                                for qn in subs["questions"]:
-                                    subs["questions"][j]["serialno"]=j+1
-                                    j +=1
-                                subs["passage"]=psglist[serialno[0]]["passage"]
-                            if types =="essay":
-                                #print name
-                                json_subs=json.loads(open(os.path.join(APP_STATIC_JSON,name+".json")).read())
-                                qns_list=json_subs["questions"];
-                                serialno=range(0,len(qns_list))
-                                shuffle(serialno)
-                                for no in range(0,cnt):
-                                    subs["questions"].append(qns_list[serialno[no]])
-                                    subs["questions"][no]["serialno"]=no+1
-                            if name == "T2-Listening":
-                                #print name
-                                json_subs=json.loads(open(os.path.join(APP_STATIC_JSON,name+".json")).read())
-                                video_list=json_subs["videoArray"]
-                                serialno=range(0,len(video_list))
-                                shuffle(serialno)
-                                subs["link"]=video_list[serialno[0]]["link"]
-                                subs["questions"]=video_list[serialno[0]]["questions"]
-                                k=0
-                                for qn in subs["questions"]:
-                                  subs["questions"][k]["serialno"]=k+1
-                                  k +=1
-    #ss=json.dumps(json_temp)
-    return json_temp
-
-def getAnswer(qid):
-    qid=int(qid)
-    if qid in range(e1_start,e1_end):
-        e1_readjson=json.loads(open(os.path.join(APP_STATIC_JSON, 'E1-Reading.json')).read())
-        for psg in e1_readjson["passageArray"]:
-            for key in psg["questions"]:
-                if int(key["id"]) == qid:
-                    for op in key["options"]:
-                        if op[0] == "=":
-                            return op[1:len(op)]
-    if qid in range(e2_start,e2_end):
-        e2_lsnjson=json.loads(open(os.path.join(APP_STATIC_JSON, 'E2-Listening.json')).read())
-        for key in e2_lsnjson["videoArray"]:
-            for qn in key["questions"]:
-                if int(qn["id"]) == qid:
-                    for op in qn["options"]:
-                        if op[0] == "=":
-                            return op[1:len(op)]
-
-def login_required(func):
-    @wraps(func)
-    def decorated_function(*args, **kwargs): 
-        user = session['user'] if 'user' in session else None
-        if not user:
-            return render_template('login.html')
-        if request.path not in user['permissions']:
-            return render_template('unauthorized.html')
-        return func(*args, **kwargs)
-    return decorated_function
-
-from flask import Flask, flash, redirect, render_template, \
-     request, jsonify, url_for, session, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
-from cerberus import Validator
-from sqlalchemy import cast
-from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.dialects.postgresql import JSON
-from functools import wraps
-from datetime import datetime
-import time
-import json
-import os
-from settings import APP_STATIC_JSON
-from random import shuffle
-import cgi
-from werkzeug.utils import secure_filename
-from flask import json as fJson
-import logging
 from logging.handlers import RotatingFileHandler
 from config import BaseConfig
 import uuid
@@ -1674,17 +1147,62 @@ def create():
             db.session.commit()
             testValid = True
             app.logger.info('%s created a Test - %s' %(admin,test_name))
-            return redirect(url_for("addstudents", TestID=test_name, hosting_date=hosting_date))
+            session["TestID"] = test_name
+            session["hosting_date"] = hosting_date
+            return redirect(url_for("addstudents"))
         else:
             session["message"] = {"Valid Name":nameValid, "Valid Date":dateValid, "Valid Test":testValid}
             return redirect(url_for("create"))                
 
-@app.route('/addstudents', methods=["GET"])
+def loadTestSet():
+    student = Users.query.filter_by(user_type="student").first()
+    if student is None:
+        for num in range(20):
+            row = Users("student"+str(num)+"@quiz.in","student","student",True)
+            db.session.add(row)
+            db.session.commit()
+
+def isRegistered(studentemail):
+    registered = Users.query.filter(Users.emailid == studentemail).first() != None
+    return registered
+
+def Invited(studentemail,testid):
+    studentrow = StudentTests.query.filter(StudentTests.emailid == studentemail).first()
+    return testid in studentrow
+
+@app.route('/addstudents', methods=["GET", "POST"])
 @login_required
 def addstudents():
-    testID = request.args.get("TestID")
-    hosting_date = request.args.get("hosting_date")
-    return render_template("add_students.html", testid=testID, hosting_date=hosting_date)
+    testID = session["TestID"]
+    hosting_date = session["hosting_date"]
+
+    app.logger.info('Add Students Page (%s) accessed by %s' %(testID,admin))
+
+    # Create sample sudents for testing
+    loadTestSet()
+    
+    if request.method == "GET":
+        return render_template("add_students.html")
+    if request.method == "POST":
+        session["students"] = []
+        try:
+            students_list = request.form["studentslist"].split(", ")
+            for student in students_list:
+                if student != "" and isRegistered(student):
+                    if not Invited(student,testID):
+                        studenttests = StudentTests(student,[testID])
+                        db.session.add(studenttests)
+                        db.session.commit()
+                        session["students"].append(student+" is Invited.")
+                    else:
+                        session["students"].append(student+" is already Invited.")
+                else:
+                    session["students"].append(student+" is not Registered.")
+        except Exception as e:
+            session["students"].append(e)
+
+        app.logger.info('%s added %s to %s' %(admin,session["students"],testID))
+        return redirect(url_for('addstudents'))
 
 @app.route('/loadtests', methods=["GET"])
 def loadtests():
@@ -1703,6 +1221,6 @@ def loadtests():
 @app.route('/autocomplete', methods=['GET'])
 def autocomplete():
     search = request.args.get('q')
-    query = db.session.query(Students.emailid).filter(Students.emailid.like('%' + str(search) + '%'))
+    query = db.session.query(Users.emailid).filter(Users.emailid.like('%' + str(search) + '%'))
     results = [mv[0] for mv in query.all()]
     return jsonify(matching_results=results)
