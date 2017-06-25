@@ -1124,34 +1124,38 @@ def save_file(folder_name,file_name,data):
     # file.close()
 
 @app.route('/create', methods=["GET","POST"])
+@login_required
 def create():
-    if 'adminemail' in session:
-        admin = session["adminemail"]
-        
-        if request.method == "GET":
-            session["message"] = {}
-            app.logger.info('Create Test Page accessed by %s' %admin)
-            return render_template("create.html")
+    admin = session["adminemail"]
 
-        if request.method=="POST":
-            test_name = request.form['name']
-            nameValid = validate_name(test_name)
+    if request.method == "GET":
+        session["message"] = {}
+        app.logger.info('Create Test Page accessed by %s' %admin)
+        return render_template("create.html")
 
-            hosting_date = request.form['datepicker']
-            dateValid = validate_date(hosting_date)
+    if request.method=="POST":
+        test_name = request.form['name']
+        nameValid = validate_name(test_name)
 
-            testValid = False
-            if nameValid and dateValid:
-                test = Tests(test_name, session["adminemail"], hosting_date)
-                db.session.add(test)
-                db.session.commit()
-                testValid = True
-                app.logger.info('%s created a Test - %s' %(admin,test_name))
+        hosting_date = request.form['datepicker']
+        dateValid = validate_date(hosting_date)
 
+        testValid = False
+        if nameValid and dateValid:
+            test = Tests(test_name, session["adminemail"], hosting_date)
+            db.session.add(test)
+            db.session.commit()
+            testValid = True
+            app.logger.info('%s created a Test - %s' %(admin,test_name))
+            return redirect(url_for("addstudents"))
+        else:
             session["message"] = {"Valid Name":nameValid, "Valid Date":dateValid, "Valid Test":testValid}
-            return redirect(url_for("create"))
-    else:
-        return redirect(url_for('adminlogin'))
+            return redirect(url_for("create"))                
+
+@app.route('/addstudents', methods=["GET"])
+@login_required
+def addstudents():
+    return render_template("students.html")
 
 @app.route('/loadtests', methods=["GET"])
 def loadtests():
