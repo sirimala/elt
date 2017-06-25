@@ -54,7 +54,7 @@
 				    <label for="name">Name of the Test</label>
 				    <input type="text" class="form-control" id="name" name="name" placeholder="Enter a Unique Name">
 				  </div>
-				  <div class="form-group">
+				  <!-- <div class="form-group">
 				    <label for="jsonfile">Question Paper (<a href="#" id="qinfo">hide</a>)</label>
 				    <p class="help-block">
 					    <ul id="help-block" style="background: antiquewhite; padding-top: 10px; padding-bottom: 10px; border-radius: 5px">
@@ -67,41 +67,22 @@
 					    </ul> 
 				    </p>
 				    <input type="file" name="files" multiple="multiple" accept=".json">
-				  </div>
+				  </div> -->
 				  <div class="form-group">
 				    <label for="datepicker">Test Hosting Date</label>
-				    <input type="text" class="form-control" id="datepicker" name="datepicker">
+				    <input type="text" class="form-control" id="datepicker" name="datepicker" placeholder="Pick a Valid Date">
 				  </div>
 				  <!-- <div class="form-group">
 					<label for="studentslist">Add Students</label><br>
 					<textarea id="studentslist" size="50" name="studentslist" class="form-control"></textarea>
 				  </div> -->
-				  <button type="submit" class="btn btn-primary">Create Test</button>
+				  <button type="submit" class="btn btn-primary">Add Students ></button>
 				</form>
 				<br>
 			</div>
 			<div class="col-md-6 col-sm-12" style="background: white">
 				<br><h3>Result</h3>
 				<hr style="border-top: 1px solid black">
-				{# {% if session["message"].name %}
-				  <div class="alert alert-success">
-			  		<strong>Selected Name is Valid.</strong>
-				  </div>
-				{% endif %}
-				{% if session["message"].json %}
-				  <div class="alert alert-success">
-			  		<strong>Uploaded JSON's are Valid.</strong>
-				  </div>
-				{% else %}
-					<div class="alert alert-warning">
-				  		<strong>Uploaded JSON's are not Valid. Below is the detailed Report.</strong>
-					</div>
-					{% for message in session["message"].messages %}
-					  <div class="alert alert-warning">
-				  		<strong>{{session}}</strong>
-					  </div>
-					{% endfor %}
-				{% endif %} #}
 				{% for message in session['message'] %}
 					<h4>{{message}}</h4>
 					<p>{{session['message'][message]}}</p>

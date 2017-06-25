@@ -229,9 +229,11 @@ class Users(db.Model):
     registered_time = db.Column(db.DateTime(), default=datetime.utcnow)
     password_last_time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __init__(self, emailid, password):
+    def __init__(self, emailid, password, user_type, verified):
         self.emailid = emailid
         self.password = password
+        self.user_type = user_type
+        self.verified = verified
 
 class AdminDetails(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -262,7 +264,7 @@ class Students(db.Model):
 class Tests(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True)
-    hosting_date = db.Column(db.String(80), unique=True)
+    hosting_date = db.Column(db.String(80))
     # json = db.Column(db.String(1000))
     creator = db.Column(db.String(180))
     time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -870,6 +872,13 @@ def verify_unique_code(email, code):
 def login():
     app.logger.info('Login page accessed')
 
+    # Create default admin credentials if not already exists
+    admin = Users.query.filter_by(user_type="admin").first()
+    if admin is None:
+        row = Users("admin@quiz.in","admin","admin",True)
+        db.session.add(row)
+        db.session.commit()
+
     if 'user' in session:
         if 'role' in session['user']:
             return redirect(url_for(session['user']['role']))
@@ -954,7 +963,7 @@ def registration():
 
             elif not exists:
                 code = generate_unique_code()
-                user = Users(email, code)
+                user = Users(email, code,"student",False)
                 db.session.add(user)
                 db.session.commit()
                 encode = base64.b64encode(email.encode()).decode()
@@ -1106,31 +1115,29 @@ def save_file(folder_name,file_name,data):
 @app.route('/create', methods=["GET","POST"])
 def create():
     if 'adminemail' in session:
+        admin = session["adminemail"]
+        
         if request.method == "GET":
+            session["message"] = {}
+            app.logger.info('Create Test Page accessed by %s' %admin)
             return render_template("create.html")
-        else:
+
+        if request.method=="POST":
             test_name = request.form['name']
             nameValid = validate_name(test_name)
 
             hosting_date = request.form['datepicker']
             dateValid = validate_date(hosting_date)
 
-            files = request.files.getlist("files")
-            files_report = []
-            for file in files:
-                file.seek(0)
-                data = fJson.load(file)
-                file_report = validate_file(file.filename, data)
-                if file_report["isValid"]:
-                    save_file(test_name, file.filename, data)
-                    files_report.append(file_report)
-
-            if nameValid and len(files_report)==len(files) and dateValid:
+            testValid = False
+            if nameValid and dateValid:
                 test = Tests(test_name, session["adminemail"], hosting_date)
                 db.session.add(test)
                 db.session.commit()
+                testValid = True
+                app.logger.info('%s created a Test - %s' %(admin,test_name))
 
-            session["message"] = {"Valid Name":nameValid, "files_report":files_report}
+            session["message"] = {"Valid Name":nameValid, "Valid Date":dateValid, "Valid Test":testValid}
             return redirect(url_for("create"))
     else:
         return redirect(url_for('adminlogin'))
