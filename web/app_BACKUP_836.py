@@ -537,8 +537,13 @@ def login_required(func):
         user = session['user'] if 'user' in session else None
         if not user:
             return render_template('login.html')
+<<<<<<< HEAD
+        # if request.path not in user['permissions']:
+        #     return render_template('unauthorized.html')
+=======
         if 'role' not in session['user']:
             return render_template('unauthorized.html')
+>>>>>>> 76f780d474158a68c8217964d9d66a959fbbc03b
         return func(*args, **kwargs)
     return decorated_function
 
@@ -1137,34 +1142,40 @@ def save_file(folder_name,file_name,data):
     # file.close()
 
 @app.route('/create', methods=["GET","POST"])
+@login_required
 def create():
-    if 'adminemail' in session:
-        admin = session["adminemail"]
-        
-        if request.method == "GET":
-            session["message"] = {}
-            app.logger.info('Create Test Page accessed by %s' %admin)
-            return render_template("create.html")
+    admin = session["adminemail"]
 
-        if request.method=="POST":
-            test_name = request.form['name']
-            nameValid = validate_name(test_name)
+    if request.method == "GET":
+        session["message"] = {}
+        app.logger.info('Create Test Page accessed by %s' %admin)
+        return render_template("create.html")
 
-            hosting_date = request.form['datepicker']
-            dateValid = validate_date(hosting_date)
+    if request.method=="POST":
+        test_name = request.form['name']
+        nameValid = validate_name(test_name)
 
-            testValid = False
-            if nameValid and dateValid:
-                test = Tests(test_name, session["adminemail"], hosting_date)
-                db.session.add(test)
-                db.session.commit()
-                testValid = True
-                app.logger.info('%s created a Test - %s' %(admin,test_name))
+        hosting_date = request.form['datepicker']
+        dateValid = validate_date(hosting_date)
 
+        testValid = False
+        if nameValid and dateValid:
+            test = Tests(test_name, session["adminemail"], hosting_date)
+            db.session.add(test)
+            db.session.commit()
+            testValid = True
+            app.logger.info('%s created a Test - %s' %(admin,test_name))
+            return redirect(url_for("addstudents", TestID=test_name, hosting_date=hosting_date))
+        else:
             session["message"] = {"Valid Name":nameValid, "Valid Date":dateValid, "Valid Test":testValid}
-            return redirect(url_for("create"))
-    else:
-        return redirect(url_for('adminlogin'))
+            return redirect(url_for("create"))                
+
+@app.route('/addstudents', methods=["GET"])
+@login_required
+def addstudents():
+    testID = request.args.get("TestID")
+    hosting_date = request.args.get("hosting_date")
+    return render_template("add_students.html", testid=testID, hosting_date=hosting_date)
 
 @app.route('/loadtests', methods=["GET"])
 def loadtests():
