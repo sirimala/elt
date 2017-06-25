@@ -16,6 +16,7 @@ import cgi
 from werkzeug.utils import secure_filename
 from flask import json as fJson
 import logging
+from logging.handlers import RotatingFileHandler
 from config import BaseConfig
 import uuid
 import base64
@@ -33,10 +34,13 @@ app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
 app.config['UPLOAD_FOLDER'] = APP_STATIC_JSON
 
-logHandler = logging.FileHandler('logs/login.log')
-logHandler.setLevel(logging.INFO)
+app.debug_log_format = "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s"
+# logHandler = logging.FileHandler('logs/login.log')
+logHandler = RotatingFileHandler('logs.log', maxBytes=10000, backupCount=1)
+# logHandler.setFormatter(formatter)
+logHandler.setLevel(logging.NOTSET)
 app.logger.addHandler(logHandler)
-app.logger.setLevel(logging.INFO)
+app.logger.setLevel(logging.NOTSET)
 app.logger.info('Log message')
 login_log = app.logger
 
@@ -522,6 +526,13 @@ def login_required(func):
             return render_template('unauthorized.html')
         return func(*args, **kwargs)
     return decorated_function
+
+@app.route('/test')
+def test():
+    app.logger.debug('in testing')
+    app.logger.info('in testing1')
+
+    return "sent"
 
 @app.route("/testmail")
 def testmail():
