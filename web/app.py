@@ -33,22 +33,28 @@ app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
 app.config['UPLOAD_FOLDER'] = APP_STATIC_JSON
 
+logHandler = logging.FileHandler('logs/login.log')
+logHandler.setLevel(logging.INFO)
+app.logger.addHandler(logHandler)
+app.logger.setLevel(logging.INFO)
+app.logger.info('Log message')
+login_log = app.logger
 
 app.secret_key = "some_secret"
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/GCT'
 app.config.from_object(BaseConfig)
 db = SQLAlchemy(app)
 
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-def setup_logger(name, log_file, level=logging.DEBUG):
-    handler = logging.FileHandler(log_file)        
-    handler.setFormatter(formatter)
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-    logger.addHandler(handler)
-    return logger
+# formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+# def setup_logger(name, log_file, level=logging.DEBUG):
+#     handler = logging.FileHandler(log_file)        
+#     handler.setFormatter(formatter)
+#     logger = logging.getLogger(name)
+#     logger.setLevel(level)
+#     logger.addHandler(handler)
+#     return logger
 
-login_log = setup_logger('login_logger', 'logs/login.log')
+# login_log = setup_logger('login_logger', 'logs/login.log')
 
 ALLOWED_EXTENSIONS = set(['json'])
 QP_TEMPLATE_SCHEMA = {
@@ -862,6 +868,8 @@ def verify_unique_code(email, code):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    app.logger.info('Login page accessed')
+
     if 'user' in session:
         if 'role' in session['user']:
             return redirect(url_for(session['user']['role']))
@@ -870,6 +878,8 @@ def login():
         return render_template('login.html')
 
     if request.method == "POST":
+        app.logger.info('Login page post request')
+
         ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
 
         email = request.form['email']
