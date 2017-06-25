@@ -524,8 +524,8 @@ def login_required(func):
         user = session['user'] if 'user' in session else None
         if not user:
             return render_template('login.html')
-        if request.path not in user['permissions']:
-            return render_template('unauthorized.html')
+        # if request.path not in user['permissions']:
+        #     return render_template('unauthorized.html')
         return func(*args, **kwargs)
     return decorated_function
 
@@ -1147,7 +1147,7 @@ def create():
             db.session.commit()
             testValid = True
             app.logger.info('%s created a Test - %s' %(admin,test_name))
-            return redirect(url_for("addstudents"))
+            return redirect(url_for("addstudents", TestID=test_name, hosting_date=hosting_date))
         else:
             session["message"] = {"Valid Name":nameValid, "Valid Date":dateValid, "Valid Test":testValid}
             return redirect(url_for("create"))                
@@ -1155,7 +1155,9 @@ def create():
 @app.route('/addstudents', methods=["GET"])
 @login_required
 def addstudents():
-    return render_template("students.html")
+    testID = request.args.get("TestID")
+    hosting_date = request.args.get("hosting_date")
+    return render_template("add_students.html", testid=testID, hosting_date=hosting_date)
 
 @app.route('/loadtests', methods=["GET"])
 def loadtests():

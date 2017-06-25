@@ -2,9 +2,12 @@
 {%block title%}Add Students{%endblock%}
 {%block body%}
 <div class="container">
+	<h4>Test ID: {{testid}}</h4>
+	<h4>Hosting Date: {{hosting_date}}</h4>
+	<h4>Add Students</h4>
 	<form method="post" action="/addstudents" enctype=multipart/form-data>
 	  <div class="form-group">
-		<label for="studentslist">Add Students</label><br>
+		<!-- <label for="studentslist">Add Students</label><br> -->
 		<textarea id="studentslist" size="50" name="studentslist" class="form-control"></textarea>
 	  </div>
 	  <button type="submit" class="btn btn-primary">Add Students</button>
