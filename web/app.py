@@ -33,10 +33,10 @@ app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
 app.config['UPLOAD_FOLDER'] = APP_STATIC_JSON
-
+app.debug = True
 app.debug_log_format = "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s"
 # logHandler = logging.FileHandler('logs/login.log')
-logHandler = RotatingFileHandler('logs.log', maxBytes=10000, backupCount=1)
+logHandler = RotatingFileHandler('logs.log', mode='a', maxBytes=10000, backupCount=1)
 # logHandler.setFormatter(formatter)
 logHandler.setLevel(logging.NOTSET)
 app.logger.addHandler(logHandler)
@@ -516,13 +516,26 @@ def getAnswer(qid):
                         if op[0] == "=":
                             return op[1:len(op)]
 
+def admin_login_required(func):
+    @wraps(func)
+    def decorated_function(*args, **kwargs): 
+        user = session['user'] if 'user' in session else None
+        if not user:
+            return render_template('login.html')
+        if 'role' not in session['user']:
+            return render_template('unauthorized.html')
+        if session['user']['role'] != 'admin':
+            return render_template('unauthorized.html')
+        return func(*args, **kwargs)
+    return decorated_function
+
 def login_required(func):
     @wraps(func)
     def decorated_function(*args, **kwargs): 
         user = session['user'] if 'user' in session else None
         if not user:
             return render_template('login.html')
-        if request.path not in user['permissions']:
+        if 'role' not in session['user']:
             return render_template('unauthorized.html')
         return func(*args, **kwargs)
     return decorated_function
