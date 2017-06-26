@@ -281,7 +281,7 @@ class Tests(db.Model):
         # self.json = json
 
     def __repr__(self):
-        return str(self.name)+"::"+str(self.time.strftime('%d/%m/%Y'))+"::"+str(self.hosting_date)
+        return str(self.name)+"::"+str(self.hosting_date)+"::"+str(self.creator)
 
 class StudentTests(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -873,6 +873,19 @@ def student():
     if request.method == "GET":
         return render_template('student.html')
 
+@app.route('/studenttests', methods=['GET'])
+@login_required
+def studenttests():
+    emailid = session["user"]['email']
+    result = StudentTests.query.filter_by(emailid=emailid).first()
+    final = {"data": []}
+    if result != None:
+        tests = result.getTests()
+        for name in tests:
+            result = str(Tests.query.filter_by(name=name).first()).split("::")
+            final["data"].append(result)
+    return json.dumps(final)
+
 @app.route('/verify/<email>/<code>', methods=['GET'])
 def verify_unique_code(email, code):
     if request.method == 'GET':
@@ -1086,13 +1099,13 @@ def setpassword():
 # @app.route('/logout')
 # def logout():
 #     ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
-#     login_log.debug("%s logged out with IP %s." % (session["adminemail"], ip_address))
+#     login_log.debug("%s logged out with IP %s." % (session["user"]['email'], ip_address))
     
 #     session.pop('adminemail', None)
 #     return redirect(url_for('adminlogin'))
 
 @app.route('/admin')
-@login_required
+@admin_login_required
 def admin():
     return render_template('admin.html')    
     
@@ -1142,7 +1155,7 @@ def save_file(folder_name,file_name,data):
 @app.route('/create', methods=["GET","POST"])
 @admin_login_required
 def create():
-    admin = session["adminemail"]
+    admin = session["user"]['email']
 
     if request.method == "GET":
         session["message"] = {}
@@ -1158,7 +1171,7 @@ def create():
 
         testValid = False
         if nameValid and dateValid:
-            test = Tests(test_name, session["adminemail"], hosting_date)
+            test = Tests(test_name, session["user"]['email'], hosting_date)
             db.session.add(test)
             db.session.commit()
             testValid = True
@@ -1236,7 +1249,7 @@ def addstudents():
 @app.route('/loadtests', methods=["GET"])
 @admin_login_required
 def loadtests():
-    creator = session["adminemail"]
+    creator = session["user"]['email']
     result = Tests.query.filter_by(creator=creator).all()
     final = {}
     final["data"] = []
