@@ -33,7 +33,7 @@ app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
 app.config['UPLOAD_FOLDER'] = APP_STATIC_JSON
-
+app.debug = True
 app.debug_log_format = "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s"
 # logHandler = logging.FileHandler('logs/login.log')
 logHandler = RotatingFileHandler('logs.log', maxBytes=10000, backupCount=1)
@@ -281,7 +281,7 @@ class Tests(db.Model):
         # self.json = json
 
     def __repr__(self):
-        return str(self.name)+"::"+str(self.time.strftime('%d - %m - %y'))
+        return str(self.name)+"::"+str(self.time.strftime('%d - %m - %y'))+"::"+str(hosting_date)
 
 class StudentTests(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1152,7 +1152,8 @@ def create():
             return redirect(url_for("addstudents"))
         else:
             session["message"] = {"Valid Name":nameValid, "Valid Date":dateValid, "Valid Test":testValid}
-            return redirect(url_for("create"))                
+            app.logger.info('Failed to create Test - %s' %test_name)
+            return render_template("create.html")
 
 def loadTestSet():
     student = Users.query.filter_by(user_type="student").first()
@@ -1166,9 +1167,11 @@ def isRegistered(studentemail):
     registered = Users.query.filter(Users.emailid == studentemail).first() != None
     return registered
 
-def Invited(studentemail,testid):
-    studentrow = StudentTests.query.filter(StudentTests.emailid == studentemail).first()
-    return testid in studentrow
+# def Invited(studentemail,testid):
+#     studentrow = StudentTests.query.filter(StudentTests.emailid == studentemail).first()
+#     if studentrow != None:
+#         return testid in studentrow.getTests()
+#     return False
 
 @app.route('/addstudents', methods=["GET", "POST"])
 @login_required
@@ -1182,27 +1185,35 @@ def addstudents():
     loadTestSet()
     
     if request.method == "GET":
+        session['students'] = []
         return render_template("add_students.html")
+    
     if request.method == "POST":
         session["students"] = []
         try:
             students_list = request.form["studentslist"].split(", ")
             for student in students_list:
                 if student != "" and isRegistered(student):
-                    if not Invited(student,testID):
-                        studenttests = StudentTests(student,[testID])
+                    qry = StudentTests.query.filter(StudentTests.emailid == student).first()
+                    if qry != None:
+                        qry.testslist = [testID]
+                        db.session.commit()
+                        session["students"].append(student+" is already Invited.")
+                    else:
+                        tests = [testID]
+                        studenttests = StudentTests(student,tests)
                         db.session.add(studenttests)
                         db.session.commit()
                         session["students"].append(student+" is Invited.")
-                    else:
-                        session["students"].append(student+" is already Invited.")
+                        app.logger.info('%s is Invited' %student)
                 else:
                     session["students"].append(student+" is not Registered.")
+                    app.logger.info('%s is not registered' %student)
         except Exception as e:
             session["students"].append(e)
 
         app.logger.info('%s added %s to %s' %(admin,session["students"],testID))
-        return redirect(url_for('addstudents'))
+        return render_template("add_students.html")
 
 @app.route('/loadtests', methods=["GET"])
 def loadtests():
