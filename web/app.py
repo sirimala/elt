@@ -1138,7 +1138,7 @@ def save_file(folder_name,file_name,data):
     # file.close()
 
 @app.route('/create', methods=["GET","POST"])
-@login_required
+@admin_login_required
 def create():
     admin = session["adminemail"]
 
@@ -1188,7 +1188,7 @@ def isRegistered(studentemail):
 #     return False
 
 @app.route('/addstudents', methods=["GET", "POST"])
-@login_required
+@admin_login_required
 def addstudents():
     testID = session["TestID"]
     hosting_date = session["hosting_date"]
@@ -1232,6 +1232,7 @@ def addstudents():
         return render_template("add_students.html")
 
 @app.route('/loadtests', methods=["GET"])
+@admin_login_required
 def loadtests():
     if 'adminemail' in session:
         creator = session["adminemail"]
@@ -1246,6 +1247,7 @@ def loadtests():
         return redirect(url_for('adminlogin'))
 
 @app.route('/autocomplete', methods=['GET'])
+@admin_login_required
 def autocomplete():
     search = request.args.get('q')
     query = db.session.query(Users.emailid).filter(Users.emailid.like('%' + str(search) + '%'))
