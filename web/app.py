@@ -28,7 +28,7 @@ mail=Mail(app)
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USERNAME'] = 'rguktemailtest@gmail.com'
-app.config['MAIL_PASSWORD'] = 'gmailforme'
+app.config['MAIL_PASSWORD'] = 'gmailforme326'
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
@@ -892,8 +892,11 @@ def studenttests():
 @app.route('/verify/<email>/<code>', methods=['GET'])
 def verify_unique_code(email, code):
     if request.method == 'GET':
-        email = base64.b64decode(email)
-        user = Users.query.filter_by(emailid=email.decode(), password=code).first()
+        email = base64.b64decode(email).decode()
+        app.logger.info(email)
+        app.logger.info(code)
+
+        user = Users.query.filter_by(emailid=email, password=code).first()
         if user:
             try:
                 user.verified = True
@@ -973,13 +976,13 @@ def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
 
-def sendMail(encode='', code=''):
-    login_log.debug("send mail function")
-    msg = Message('Account Verification for RGUKT QUIZ', sender = 'RGUKT QUIZ <rguktemailtest@gmail.com>', recipients = ['sirimala.sreenath@gmail.com'])
+def sendMail(encode='', code='', email='rguktemailtest@gmail.com'):
+    app.logger.debug("send mail function")
+    msg = Message('Account Verification for RGUKT QUIZ', sender = 'RGUKT QUIZ <rguktemailtest@gmail.com>', recipients = [email])
     msg.html = """Hi Receipient,\n Please click on link given below to activate your account. 
     <a href=%s/verify/%s/%s """ % (request.host, encode, code)
     mail.send(msg)
-    return "Sent"
+    return True
 
 @app.route('/registration', methods=['GET', 'POST'])
 def registration():
@@ -1000,7 +1003,7 @@ def registration():
             exists = db.session.query(Users).filter_by(emailid=email).scalar() is not None
             if email[-9:] != ".rgukt.in":
                 message = "Email ID must be from RGUKT"
-                message_staus = "error"
+                message_staus = "danger"
 
             elif not exists:
                 code = generate_unique_code()
@@ -1009,21 +1012,26 @@ def registration():
                 db.session.commit()
                 encode = base64.b64encode(email.encode()).decode()
                 
-                sendMail(encode, code)
-
-                login_log.debug(email)
-                login_log.debug("after commit registration Form")
-                message = "registration success, Check your mail for verification request"
-                message_staus = "success"
+                sent = sendMail(encode, code)
+                if sent:
+                    app.logger.debug("registration success, Check your mail for verification request")
+                    message = "registration success, Check your mail for verification request"
+                    message_staus = "success"
+                else:
+                    db.session.rollback()
+                    app.logger.debug("Something went wrong in sending verification mail, please try again")
+                    message = "Something went wrong in sending verification mail, please try again"
+                    message_staus = "danger"
             else:
                 message = str(email) + " already exists, Please contact admin"
-                message_staus = "error"
+                message_staus = "danger"
 
         except Exception as e:
-            session.rollback()
+            db.session.rollback()
             message = e
-            message_staus = "error"
-            login_log.debug(e)
+            message_staus = "danger"
+            app.logger.debug("Something went wrong in sending verification mail, please try again"+str(e))
+            
 
         return render_template('registration.html', message=message, status=message_staus)
 
@@ -1225,7 +1233,9 @@ def addstudents():
         try:
             students_list = request.form["studentslist"].split(", ")
             for student in students_list:
-                if student != "" and isRegistered(student):
+                if student == "":
+                    continue
+                if isRegistered(student):
                     qry = StudentTests.query.filter(StudentTests.emailid == student).first()
                     if qry != None:
                         if testID in qry.testslist:
@@ -1253,6 +1263,7 @@ def addstudents():
 @admin_login_required
 def loadtests():
     creator = session["user"]['email']
+    app.logger.info("Getting all tests created by " + creator)
     result = Tests.query.filter_by(creator=creator).all()
     final = {}
     final["data"] = []

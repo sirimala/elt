@@ -29,15 +29,10 @@ form {
 <div class="container centered">
 	<form class="form-horizontal" method="post">
 		<legend>Registration</legend>
-		{% if message_status == "error" %}
-		<div class="alert alert-warning">
-		  <strong>{{message}}</strong>
-		</div>
-		{% endif %}
-		{% if message_status == "success" %}
-		<div class="alert alert-success">
-		  <strong>{{message}}</strong>
-		</div>
+		{% if message %}
+			<div class="alert alert-{{status}}">
+			  <strong>{{message}}</strong>
+			</div>
 		{% endif %}
 		<p id="message"></p>
 		<div class="form-group">
