@@ -33,7 +33,7 @@ app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
 app.config['UPLOAD_FOLDER'] = APP_STATIC_JSON
-app.debug = True
+
 app.debug_log_format = "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s"
 # logHandler = logging.FileHandler('logs/login.log')
 logHandler = RotatingFileHandler('logs.log', maxBytes=10000, backupCount=1)
@@ -281,7 +281,7 @@ class Tests(db.Model):
         # self.json = json
 
     def __repr__(self):
-        return str(self.name)+"::"+str(self.time.strftime('%d - %m - %y'))+"::"+str(hosting_date)
+        return str(self.name)+"::"+str(self.time.strftime('%d - %m - %y'))
 
 class StudentTests(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -550,7 +550,6 @@ def index():
 
 @app.route('/javascripts/<path:path>')
 def send_javascripts(path):
-    app.logger.info("seeking for "+path)
     return send_from_directory('static/javascripts', path)
 
 @app.route('/video/<path:path>')
@@ -1148,73 +1147,17 @@ def create():
             db.session.commit()
             testValid = True
             app.logger.info('%s created a Test - %s' %(admin,test_name))
-            session["TestID"] = test_name
-            session["hosting_date"] = hosting_date
-            return redirect(url_for("addstudents"))
+            return redirect(url_for("addstudents", TestID=test_name, hosting_date=hosting_date))
         else:
             session["message"] = {"Valid Name":nameValid, "Valid Date":dateValid, "Valid Test":testValid}
-            app.logger.info('Failed to create Test - %s' %test_name)
-            return render_template("create.html")
+            return redirect(url_for("create"))                
 
-def loadTestSet():
-    student = Users.query.filter_by(user_type="student").first()
-    if student is None:
-        for num in range(20):
-            row = Users("student"+str(num)+"@quiz.in","student","student",True)
-            db.session.add(row)
-            db.session.commit()
-
-def isRegistered(studentemail):
-    registered = Users.query.filter(Users.emailid == studentemail).first() != None
-    return registered
-
-# def Invited(studentemail,testid):
-#     studentrow = StudentTests.query.filter(StudentTests.emailid == studentemail).first()
-#     if studentrow != None:
-#         return testid in studentrow.getTests()
-#     return False
-
-@app.route('/addstudents', methods=["GET", "POST"])
+@app.route('/addstudents', methods=["GET"])
 @login_required
 def addstudents():
-    testID = session["TestID"]
-    hosting_date = session["hosting_date"]
-
-    app.logger.info('Add Students Page (%s) accessed by %s' %(testID,admin))
-
-    # Create sample sudents for testing
-    loadTestSet()
-    
-    if request.method == "GET":
-        session['students'] = []
-        return render_template("add_students.html")
-    
-    if request.method == "POST":
-        session["students"] = []
-        try:
-            students_list = request.form["studentslist"].split(", ")
-            for student in students_list:
-                if student != "" and isRegistered(student):
-                    qry = StudentTests.query.filter(StudentTests.emailid == student).first()
-                    if qry != None:
-                        qry.testslist = [testID]
-                        db.session.commit()
-                        session["students"].append(student+" is already Invited.")
-                    else:
-                        tests = [testID]
-                        studenttests = StudentTests(student,tests)
-                        db.session.add(studenttests)
-                        db.session.commit()
-                        session["students"].append(student+" is Invited.")
-                        app.logger.info('%s is Invited' %student)
-                else:
-                    session["students"].append(student+" is not Registered.")
-                    app.logger.info('%s is not registered' %student)
-        except Exception as e:
-            session["students"].append(e)
-
-        app.logger.info('%s added %s to %s' %(admin,session["students"],testID))
-        return render_template("add_students.html")
+    testID = request.args.get("TestID")
+    hosting_date = request.args.get("hosting_date")
+    return render_template("add_students.html", testid=testID, hosting_date=hosting_date)
 
 @app.route('/loadtests', methods=["GET"])
 def loadtests():
@@ -1233,6 +1176,6 @@ def loadtests():
 @app.route('/autocomplete', methods=['GET'])
 def autocomplete():
     search = request.args.get('q')
-    query = db.session.query(Users.emailid).filter(Users.emailid.like('%' + str(search) + '%'))
+    query = db.session.query(Students.emailid).filter(Students.emailid.like('%' + str(search) + '%'))
     results = [mv[0] for mv in query.all()]
     return jsonify(matching_results=results)
