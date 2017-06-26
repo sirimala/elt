@@ -33,7 +33,7 @@ app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
 app.config['UPLOAD_FOLDER'] = APP_STATIC_JSON
-app.debug = True
+
 app.debug_log_format = "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s"
 # logHandler = logging.FileHandler('logs/login.log')
 logHandler = RotatingFileHandler('logs.log', maxBytes=10000, backupCount=1)
@@ -47,6 +47,7 @@ login_log = app.logger
 app.secret_key = "some_secret"
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/GCT'
 app.config.from_object(BaseConfig)
+
 db = SQLAlchemy(app)
 
 # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
