@@ -518,14 +518,27 @@ def getAnswer(qid):
                         if op[0] == "=":
                             return op[1:len(op)]
 
+def admin_login_required(func):
+    @wraps(func)
+    def decorated_function(*args, **kwargs): 
+        user = session['user'] if 'user' in session else None
+        if not user:
+            return render_template('login.html')
+        if 'role' not in session['user']:
+            return render_template('unauthorized.html')
+        if session['user']['role'] != 'admin':
+            return render_template('unauthorized.html')
+        return func(*args, **kwargs)
+    return decorated_function
+
 def login_required(func):
     @wraps(func)
     def decorated_function(*args, **kwargs): 
         user = session['user'] if 'user' in session else None
         if not user:
             return render_template('login.html')
-        # if request.path not in user['permissions']:
-        #     return render_template('unauthorized.html')
+        if 'role' not in session['user']:
+            return render_template('unauthorized.html')
         return func(*args, **kwargs)
     return decorated_function
 
