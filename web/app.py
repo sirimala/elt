@@ -282,6 +282,9 @@ class Tests(db.Model):
         self.hosting_date = hosting_date
         self.time = datetime.utcnow()
         # self.json = json
+    def isHosted(self):
+        today = datetime.now()
+        return datetime.strptime(self.hosting_date, '%d/%m/%Y') == today
 
     def __repr__(self):
         return str(self.name)+"::"+str(self.hosting_date)+"::"+str(self.creator)
@@ -885,8 +888,14 @@ def studenttests():
     if result != None:
         tests = result.getTests()
         for name in tests:
-            result = str(Tests.query.filter_by(name=name).first()).split("::")
-            final["data"].append(result)
+            result = Tests.query.filter_by(name=name).first()
+            tests = str(result).split("::")
+            if result.isHosted():
+                button = "<a href='#' class='btn btn-sm btn-primary'>Attempt Test</a>"
+            else:
+                button = "<a href='#' class='btn btn-sm btn-warning' disabled>Locked</a>"
+            tests.append(button)
+            final["data"].append(tests)
     return json.dumps(final)
 
 @app.route('/verify/<email>/<code>', methods=['GET'])
