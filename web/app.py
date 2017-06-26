@@ -33,7 +33,6 @@ app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
 app.config['UPLOAD_FOLDER'] = APP_STATIC_JSON
-app.debug = True
 app.debug_log_format = "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s"
 # logHandler = logging.FileHandler('logs/login.log')
 logHandler = RotatingFileHandler('logs.log', maxBytes=10000, backupCount=1)
@@ -47,6 +46,7 @@ login_log = app.logger
 app.secret_key = "some_secret"
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/GCT'
 app.config.from_object(BaseConfig)
+app.debug = True
 db = SQLAlchemy(app)
 
 # formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -1042,6 +1042,8 @@ def setpassword():
             message_staus = "error"
 
             return render_template("set_password.html", message=message, status=message_staus)
+
+
 #==================================================== ADMIN PAGE =====================================================
 # def valid_admin_login(email, password):
 #     result = AdminDetails.query.filter_by(email=email).first()
@@ -1234,17 +1236,14 @@ def addstudents():
 @app.route('/loadtests', methods=["GET"])
 @admin_login_required
 def loadtests():
-    if 'adminemail' in session:
-        creator = session["adminemail"]
-        result = Tests.query.filter_by(creator=creator).all()
-        final = {}
-        final["data"] = []
-        for test in result:
-            test = str(test).split("::")
-            final["data"].append(test)
-        return json.dumps(final)
-    else:
-        return redirect(url_for('adminlogin'))
+    creator = session["adminemail"]
+    result = Tests.query.filter_by(creator=creator).all()
+    final = {}
+    final["data"] = []
+    for test in result:
+        test = str(test).split("::")
+        final["data"].append(test)
+    return json.dumps(final)
 
 @app.route('/autocomplete', methods=['GET'])
 @admin_login_required
