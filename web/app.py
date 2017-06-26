@@ -1269,6 +1269,8 @@ def loadtests():
     final["data"] = []
     for test in result:
         test = str(test).split("::")
+        button = "<a href='#' class='btn btn-sm btn-primary' disabled>Preview Test</a>"
+        test.append(button)
         final["data"].append(test)
     return json.dumps(final)
 
