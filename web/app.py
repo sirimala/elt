@@ -281,7 +281,7 @@ class Tests(db.Model):
         # self.json = json
 
     def __repr__(self):
-        return str(self.name)+"::"+str(self.time.strftime('%d - %m - %y'))+"::"+str(hosting_date)
+        return str(self.name)+"::"+str(self.time.strftime('%d/%m/%Y'))+"::"+str(self.hosting_date)
 
 class StudentTests(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1210,9 +1210,11 @@ def addstudents():
                 if student != "" and isRegistered(student):
                     qry = StudentTests.query.filter(StudentTests.emailid == student).first()
                     if qry != None:
-                        qry.testslist = [testID]
-                        db.session.commit()
-                        session["students"].append(student+" is already Invited.")
+                        if testID in qry.testslist:
+                            session["students"].append(student+" is already Invited.")
+                        else:
+                            qry.testslist.append(testID)
+                            db.session.commit()
                     else:
                         tests = [testID]
                         studenttests = StudentTests(student,tests)
