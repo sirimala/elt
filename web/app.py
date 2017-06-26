@@ -563,6 +563,7 @@ def index():
 
 @app.route('/javascripts/<path:path>')
 def send_javascripts(path):
+    app.logger.info("seeking for "+path)
     return send_from_directory('static/javascripts', path)
 
 @app.route('/video/<path:path>')
