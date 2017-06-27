@@ -1,18 +1,7 @@
 {%extends "base.html"%}
 {%block title%}Registration Page{%endblock%}
 {%block script%}
-<script>
-	$(function() {
-		$("form").on("submit", function(){
-			email = $("#email").val();
-    		var organization = email.substr(-9);
-    		if(organization != ".rgukt.in"){
-    			$("#message").text("Email ID must be from RGUKT");
-    			return false;
-    		}
-		});
-	});
-</script>
+
 {%endblock%}
 {%block styles%}
 <style type="text/css">
