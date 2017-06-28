@@ -2,51 +2,6 @@
 {%block title%}Login Page{%endblock%}
 {%block script%}
 <script type="text/javascript" src="javascripts/notify.min.js"></script>
-
-<script>
-	$(function() {
-		$("form").on("submit", function(){
-			email = $("#email").val();
-    		var organization = email.substr(-9);
-    		if(organization != ".rgukt.in"){
-    			// $("#message").text("Email ID must be from RGUKT");
-    			$("#email").notify({"Email ID must be from RGUKT", "error"}, {
-					  // whether to hide the notification on click
-					  clickToHide: true,
-					  // whether to auto-hide the notification
-					  autoHide: true,
-					  // if autoHide, hide after milliseconds
-					  autoHideDelay: 5000,
-					  // show the arrow pointing at the element
-					  arrowShow: true,
-					  // arrow size in pixels
-					  arrowSize: 5,
-					  // position defines the notification position though uses the defaults below
-					  position: '...',
-					  // default positions
-					  elementPosition: 'bottom left',
-					  globalPosition: 'top right',
-					  // default style
-					  style: 'bootstrap',
-					  // default class (string or [string])
-					  className: 'error',
-					  // show animation
-					  showAnimation: 'slideDown',
-					  // show animation duration
-					  showDuration: 400,
-					  // hide animation
-					  hideAnimation: 'slideUp',
-					  // hide animation duration
-					  hideDuration: 200,
-					  // padding between element and notification
-					  gap: 2
-					}
-    				);
-    			return false;
-    		}
-		});
-	});
-</script>
 {%endblock%}
 {%block body%}
 <div class="container-fluid">

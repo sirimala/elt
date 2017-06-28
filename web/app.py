@@ -21,6 +21,8 @@ from config import BaseConfig
 import uuid
 import base64
 from flask_mail import Mail, Message
+import requests
+import hashlib
 
 app = Flask(__name__, static_url_path='')
 mail=Mail(app)
@@ -660,7 +662,7 @@ def getquizstatus():
 
     ss=json.dumps(json_data)
     return ss
-
+requests
 @app.route('/testtime', methods=['POST'])
 def testtime():
     duration = 60 * 60
@@ -868,7 +870,7 @@ def generate_unique_code():
 
 
 def valid_user_login(email, password):
-    user = Users.query.filter_by(emailid=email, password=password).first()
+    user = Users.query.filter_by(emailid=email, password=hashlib.md5(password.encode('utf-8')).hexdigest()).first()
     if user:
         return user
     return None
@@ -985,13 +987,34 @@ def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
 
-def sendMail(encode='', code='', email='rguktemailtest@gmail.com'):
+def sendMail(encode='Testing', code='Testing', email='rguktemailtest@gmail.com'):
     app.logger.debug("send mail function")
-    msg = Message('Account Verification for RGUKT QUIZ', sender = 'RGUKT QUIZ <rguktemailtest@gmail.com>', recipients = [email])
-    msg.html = """Hi Receipient,\n Please click on link given below to activate your account. 
-    <a href=%s/verify/%s/%s """ % (request.host, encode, code)
-    mail.send(msg)
-    return True
+    body = """Dear Student,<br> This email message is sent by the online quiz portal. 
+    By clicking the link below you are verifying that this email belongs to you and your account will be actiavted. 
+    Click on the link below and follow the instructions to complete the registration process. 
+    <a href=%s/verify/%s/%s>Verify</a> """ % (request.host, encode, code)
+    response = requests.post(
+        "https://api.mailgun.net/v3/rguktrkv.ac.in/messages",
+        auth=("api", os.environ['YOUR_MAIL_GUN_KEY']),
+        data={"from": "RGUKT QUIZ <news@rguktrkv.ac.in>",
+              "to": [email],
+              "subject": 'Account Verification for RGUKT QUIZ',
+              "text": '',
+              "html": body})
+    app.logger.info([response.status_code, response.text])
+    if response.status_code == 200:
+        return True
+    else:
+        return False
+
+
+# def sendMail(encode='', code='', email='rguktemailtest@gmail.com'):
+#     app.logger.debug("send mail function")
+#     msg = Message('Account Verification for RGUKT QUIZ', sender = 'RGUKT QUIZ <rguktemailtest@gmail.com>', recipients = [email])
+#     msg.html = """Hi Receipient,\n Please click on link given below to activate your account. 
+#     <a href=%s/verify/%s/%s """ % (request.host, encode, code)
+#     mail.send(msg)
+#     return True
 
 @app.route('/registration', methods=['GET', 'POST'])
 def registration():
@@ -1010,24 +1033,25 @@ def registration():
 
             email = request.form["email"]
             exists = db.session.query(Users).filter_by(emailid=email).scalar() is not None
-            if email[-9:] != ".rgukt.in":
-                message = "Email ID must be from RGUKT"
-                message_staus = "danger"
+            # if email[-9:] != ".rgukt.in":
+            #     message = "Email ID must be from RGUKT"
+            #     message_staus = "danger"
 
-            elif not exists:
+            if not exists:
                 code = generate_unique_code()
                 user = Users(email, code,"student",False)
                 db.session.add(user)
                 db.session.commit()
                 encode = base64.b64encode(email.encode()).decode()
                 
-                sent = sendMail(encode, code)
+                sent = sendMail(encode, code, email)
                 if sent:
-                    app.logger.debug("registration success, Check your mail for verification request")
-                    message = "registration success, Check your mail for verification request"
+                    app.logger.debug("an email has been sent to your email address "+email+". Please go to your inbox and click on the link to verify and activate your account")
+                    message = "an email has been sent to your email address "+email+". Please go to your inbox and click on the link to verify and activate your account"
                     message_staus = "success"
                 else:
-                    db.session.rollback()
+                    db.session.delete(user)
+                    db.session.commit()
                     app.logger.debug("Something went wrong in sending verification mail, please try again")
                     message = "Something went wrong in sending verification mail, please try again"
                     message_staus = "danger"
@@ -1039,7 +1063,7 @@ def registration():
             db.session.rollback()
             message = e
             message_staus = "danger"
-            app.logger.debug("Something went wrong in sending verification mail, please try again"+str(e))
+            app.logger.debug("Something went wrong in sending verification mail, please try again "+str(e))
             
 
         return render_template('registration.html', message=message, status=message_staus)
@@ -1060,7 +1084,7 @@ def setpassword():
         if password == confirm_password:
             user = Users.query.filter_by(emailid=email).first()
             if user:
-                user.password = password
+                user.password = hashlib.md5(password.encode('utf-8')).hexdigest()
                 db.session.add(user)
                 db.session.commit()
                 message = "Password successfully change, Please login"
