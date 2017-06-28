@@ -989,6 +989,7 @@ def logout():
     login_log.debug("%s logged out with IP %s." % (session['user']["email"], ip_address))
     
     session.pop('user', None)
+    session.pop('TestID', None)
     return redirect(url_for('login'))
 
 def sendMail(encode='Testing', code='Testing', email='rguktemailtest@gmail.com'):
