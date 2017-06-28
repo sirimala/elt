@@ -988,8 +988,10 @@ def logout():
 
 def sendMail(encode='Testing', code='Testing', email='rguktemailtest@gmail.com'):
     app.logger.debug("send mail function")
-    body = """Dear Student,\n Please click on link given below to activate your account. 
-    <a href=%s/verify/%s/%s """ % (request.host, encode, code)
+    body = """Dear Student,\n This email message is sent by the online quiz portal. 
+    By clicking the link below you are verifying that this email belongs to you and your account will be actiavted. 
+    Click on the link below and follow the instructions to complete the registration process. 
+    <a href=%s/verify/%s/%s>Verify</a> """ % (request.host, encode, code)
     response = requests.post(
         "https://api.mailgun.net/v3/rguktrkv.ac.in/messages",
         auth=("api", "key-80400e1aaa7a2a3a33c49b4e17c5a796"),
@@ -1043,8 +1045,8 @@ def registration():
                 
                 sent = sendMail(encode, code, email)
                 if sent:
-                    app.logger.debug("registration success, Check your mail for verification request")
-                    message = "registration success, Check your mail for verification request"
+                    app.logger.debug("an email has been sent to your email address "+email+". Please go to your inbox and click on the link to verify and activate your account")
+                    message = "an email has been sent to your email address "+email+". Please go to your inbox and click on the link to verify and activate your account"
                     message_staus = "success"
                 else:
                     db.session.rollback()
