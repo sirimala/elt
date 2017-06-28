@@ -1203,15 +1203,17 @@ def create():
     admin = session["user"]['email']
     # return redirect(url_for("admin"))
     if request.method == "GET":
-        session["message"] = {}
-        app.logger.info('Create Test Page accessed by %s' %admin)
-        return render_template("create.html")
+    #     session["message"] = {}
+    #     app.logger.info('Create Test Page accessed by %s' %admin)
+    #     return render_template("create.html")
 
-    if request.method=="POST":
-        test_name = request.form['name']
+    # if request.method=="POST":
+        # test_name = request.form['name']
+        test_name = "English Literacy Test"
         nameValid = validate_name(test_name)
 
-        hosting_date = request.form['datepicker']
+        # hosting_date = request.form['datepicker']
+        hosting_date = "30/06/2017"
         dateValid = validate_date(hosting_date)
 
         testValid = False
@@ -1227,7 +1229,8 @@ def create():
         else:
             session["message"] = {"Valid Name":nameValid, "Valid Date":dateValid, "Valid Test":testValid}
             app.logger.info('Failed to create Test - %s' %test_name)
-            return render_template("create.html")
+            # return render_template("create.html")
+            return redirect(url_for("admin"))
 
 def loadTestSet():
     student = Users.query.filter_by(user_type="student").first()
