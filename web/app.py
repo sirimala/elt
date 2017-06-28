@@ -1201,7 +1201,7 @@ def save_file(folder_name,file_name,data):
 @admin_login_required
 def create():
     admin = session["user"]['email']
-    return redirect(url_for("admin"))
+    # return redirect(url_for("admin"))
     if request.method == "GET":
         session["message"] = {}
         app.logger.info('Create Test Page accessed by %s' %admin)
@@ -1293,6 +1293,14 @@ def addstudents():
         app.logger.info('%s added %s to %s' %(admin,session["students"],testID))
         return render_template("add_students.html")
 
+def getStudentsList(test):
+    result = StudentTests.query.all()
+    students = []
+    for i in result:
+        if test in i.testslist:
+            students.append(i.emailid)
+    return students
+
 @app.route('/loadtests', methods=["GET"])
 @admin_login_required
 def loadtests():
@@ -1303,6 +1311,7 @@ def loadtests():
     final["data"] = []
     for test in result:
         test = str(test).split("::")
+        test.append(str(getStudentsList(test[0]))[1:-2])
         button = "<a href='#' class='btn btn-sm btn-primary'>Edit Test</a>"
         test.append(button)
         button = "<a href='#' class='btn btn-sm btn-success' disabled>Preview Test</a>"
