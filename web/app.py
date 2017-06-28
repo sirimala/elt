@@ -961,6 +961,9 @@ def login():
                 session['user']['permissions'] = permissions_object[role]
                 session['user']['allow_to_set_password'] = True
 
+                if password == "admin":
+                    return redirect(url_for("setpassword"))
+                    
                 message = "You are logged in as %s" % email
                 logging.debug(user.verified)
                 login_log.debug("Logged in as %s with IP %s" % (email, ip_address))
