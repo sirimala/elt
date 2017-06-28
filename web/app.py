@@ -930,7 +930,8 @@ def login():
     # Create default admin credentials if not already exists
     admin = Users.query.filter_by(user_type="admin").first()
     if admin is None:
-        row = Users("admin@quiz.in","admin","admin",True)
+        password = hashlib.md5("admin".encode('utf-8')).hexdigest()
+        row = Users("admin@quiz.in",password,"admin",True)
         db.session.add(row)
         db.session.commit()
 
