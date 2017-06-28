@@ -1,5 +1,22 @@
 {%extends "base.html"%}
 {%block title%}Add Students{%endblock%}
+{%block styles%}
+<!-- <style type="text/css">
+	textarea{  
+	  display:block;
+	  box-sizing: padding-box;
+	  overflow:hidden;
+
+	  padding:10px;
+	  width:250px;
+	  font-size:14px;
+	  margin:50px auto;
+	  border-radius:6px;
+	  box-shadow:2px 2px 8px rgba(0,0,0,.3);
+	  border:0;
+	}
+</style> -->
+{%endblock%}
 {%block body%}
 <div class="container-fluid">
 	<div class="row">
@@ -11,7 +28,8 @@
 			<h4>Add Students</h4>
 			<form method="post" action="/addstudents" enctype=multipart/form-data>
 			  <div class="form-group">
-				<textarea id="studentslist" size="50" name="studentslist" class="form-control"></textarea>
+			  	<textarea id="studentslist" class='form-control' name="studentslist" rows="3" data-min-rows='3' placeholder='Start typing an email address and pick from suggestions..'></textarea>
+				<!-- <textarea  size="50" rows="5"  class="form-control"></textarea> -->
 			  </div>
 			  <button type="submit" class="btn btn-primary">Add Students</button>
 			</form>
@@ -27,6 +45,25 @@
 </div>
 {%block script%}
 <script type="text/javascript">
+
+	// auto-resizing textarea
+	// $(document)
+ //    .one('focus.autoExpand', 'textarea.autoExpand', function(){
+ //        var savedValue = this.value;
+ //        this.value = '';
+ //        this.baseScrollHeight = this.scrollHeight;
+ //        this.value = savedValue;
+ //    })
+ //    .on('input.autoExpand', 'textarea.autoExpand', function(){
+ //        var minRows = this.getAttribute('data-min-rows')|0, rows;
+ //        this.rows = minRows;
+ //        rows = Math.ceil((this.scrollHeight - this.baseScrollHeight) / 17);
+ //        this.rows = minRows + rows;
+ //    });
+ 
+ 	//resize textarea according to students list
+ 	$(this).height( $(this)[0].scrollHeight );
+
 	// code for auto-suggesting student email id's
 	$( function() {
 	    function split( val ) {
@@ -62,7 +99,7 @@
 	          if ( terms.indexOf(ui.item.value) == -1)
 	          	terms.push( ui.item.value );
 	          	terms.push( "" );
-	          	this.value = terms.join( ", " );
+	          	this.value = terms.join( ",\n" );
 	          return false;
 	        }
 	      });

@@ -963,7 +963,7 @@ def login():
 
                 if password == "admin":
                     return redirect(url_for("setpassword"))
-                    
+
                 message = "You are logged in as %s" % email
                 logging.debug(user.verified)
                 login_log.debug("Logged in as %s with IP %s" % (email, ip_address))
@@ -1271,8 +1271,9 @@ def addstudents():
     if request.method == "POST":
         session["students"] = []
         try:
-            students_list = request.form["studentslist"].split(", ")
+            students_list = request.form["studentslist"].split(",")
             for student in students_list:
+                student = student.lstrip()
                 if student == "":
                     continue
                 if isRegistered(student):
