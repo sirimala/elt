@@ -1201,7 +1201,7 @@ def save_file(folder_name,file_name,data):
 @admin_login_required
 def create():
     admin = session["user"]['email']
-
+    return redirect(url_for("admin"))
     if request.method == "GET":
         session["message"] = {}
         app.logger.info('Create Test Page accessed by %s' %admin)
