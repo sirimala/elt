@@ -29,8 +29,8 @@ mail=Mail(app)
 
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'rguktemailtest@gmail.com'
-app.config['MAIL_PASSWORD'] = 'gmailforme326'
+app.config['MAIL_USERNAME'] = 'xxxxx@gmail.com'
+app.config['MAIL_PASSWORD'] = 'xxxxx'
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 mail = Mail(app)
@@ -550,12 +550,22 @@ def login_required(func):
         return func(*args, **kwargs)
     return decorated_function
 
+def list_files(startpath):
+    for root, dirs, files in os.walk(startpath):
+        level = root.replace(startpath, '').count(os.sep)
+        indent = ' ' * 4 * (level)
+        app.logger.info('{}{}/'.format(indent, os.path.basename(root)))
+        subindent = ' ' * 4 * (level + 1)
+        for f in files:
+            app.logger.info('{}{}'.format(subindent, f))
+
 @app.route('/test')
 def test():
     app.logger.debug('in testing')
     app.logger.info('in testing1')
-
-    return "sent"
+    # app.logger.info(os.walk(app.static_folder))
+    list_files(app.static_folder)
+    return ""
 
 @app.route("/testmail")
 def testmail():
