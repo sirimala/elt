@@ -1,11 +1,19 @@
 {%extends "base.html"%}
 {%block title%}Add Students{%endblock%}
 {% block styles %}
-	<link href="//code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" rel="Stylesheet"></link>
-	<script src="//code.jquery.com/ui/1.10.2/jquery-ui.js" ></script>
 	<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.css" rel="Stylesheet"></link>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.12.0/moment.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js" ></script>
+	<style type="text/css">
+		  .ui-autocomplete {
+		    max-height: 120px;
+		    overflow-y: auto;
+		    overflow-x: hidden;
+		  }
+		  * html .ui-autocomplete {
+		    height: 100px;
+		  }
+	</style>
 {% endblock %}
 {%block body%}
 <div class="container-fluid">
@@ -41,7 +49,7 @@
 		        </div>
 			  <div class="form-group">
 				<label for="studentslist">Add Students</label>
-			  	<textarea id="studentslist" class='form-control' name="studentslist" rows="3" data-min-rows='3' placeholder='Start typing an email address and pick from suggestions..'></textarea>
+			  	<textarea id="studentslist" class='form-control' name="studentslist" rows="1" placeholder='Start typing an email address and pick from suggestions..'></textarea>
 			  </div>
 			  <button type="submit" class="btn btn-primary">Save Changes</button>
 			</form>
@@ -87,24 +95,26 @@
         });
     });
 
- 	hosting_date = "{{session['hosting_date']}}"
  	//prefil form
- 	students = "{{session['students']}}"
+ 	start_date = "{{session['start_date']}}"
+ 	end_date = "{{session['end_date']}}"
+ 	$("#start_date").val(start_date) 
+ 	$("#end_date").val(end_date)
  	
- 	if(students != [])
- 		//Used Array to convert the psuedo-array into JS array
- 		students = Array.prototype.join.call(students, ",\n").substr(1,-2);
+ 	// students = "{{session['students']}}"
+ 	// if(students != [])
+ 	// 	//Used Array to convert the psuedo-array into JS array
+ 	// 	students = Array.prototype.join.call(students, ",\n").substr(1,-2);
 
- 	$("#datepicker").val(hosting_date) 
- 	$("#studentslist").val(students)
+ 	//prefill form data
+ 	// $("#studentslist").val(students)
 
- 	$(this).height( $(this)[0].scrollHeight );
  	//resize textarea according to students list
 
 	// code for auto-suggesting student email id's
 	$( function() {
 	    function split( val ) {
-	      return val.split( /,\s*/ );
+	      return val.split( /\n\s*/ );
 	    }
 
 	    function extractLast( term ) {
@@ -112,11 +122,20 @@
 	    }
 	 	
 	    $( "#studentslist" )
-	      .on( "keydown", function( event ) {
+	      // .on( "keydown", function( event ) {
+	      //   if ( event.keyCode === $.ui.keyCode.TAB &&
+	      //       $( this ).autocomplete( "instance" ).menu.active ) {
+	      //     event.preventDefault();
+	      //   }
+	      // })
+	      .on("keydown", function( event ) {
 	        if ( event.keyCode === $.ui.keyCode.TAB &&
 	            $( this ).autocomplete( "instance" ).menu.active ) {
-	          event.preventDefault();
-	        }
+	          		event.preventDefault();
+	        	}
+	      	})
+	      .on("paste", function(event) {
+	      	$("#studentslist").height( $("#studentslist")[0].scrollHeight );
 	      })
 	      .autocomplete({
 	        minLength: 0,
@@ -136,7 +155,8 @@
 	          if ( terms.indexOf(ui.item.value) == -1)
 	          	terms.push( ui.item.value );
 	          	terms.push( "" );
-	          	this.value = terms.join( ",\n" );
+	          	this.value = terms.join( "\n" );
+	          	$("#studentslist").height( $("#studentslist")[0].scrollHeight );
 	          return false;
 	        }
 	      });
