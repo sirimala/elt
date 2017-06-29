@@ -278,23 +278,25 @@ class Students(db.Model):
 class Tests(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True)
-    hosting_date = db.Column(db.String(80))
+    start_date = db.Column(db.String(80))
+    end_date = db.Column(db.String(80))
     # json = db.Column(db.String(1000))
     creator = db.Column(db.String(180))
     time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __init__(self, name, creator, hosting_date):
+    def __init__(self, name, creator, start_date, end_date):
         self.name = name
         self.creator = creator
-        self.hosting_date = hosting_date
+        self.start_date = start_date
+        self.end_date = end_date
         self.time = datetime.utcnow()
         # self.json = json
     def isHosted(self):
         today = datetime.now()
-        return datetime.strptime(self.hosting_date, '%d/%m/%Y') == today
+        return datetime.strptime(self.end_date, '%d-%m-%Y %H:%M') < today
 
     def __repr__(self):
-        return str(self.name)+"::"+str(self.hosting_date)+"::"+str(self.creator)
+        return str(self.name)+"::"+str(self.start_date)+"::"+str(self.end_date)
 
 class StudentTests(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -954,7 +956,8 @@ def login():
     # Create default admin credentials if not already exists
     admin = Users.query.filter_by(user_type="admin").first()
     if admin is None:
-        row = Users("admin@quiz.in","admin","admin",True)
+        password = hashlib.md5("admin".encode('utf-8')).hexdigest()
+        row = Users("admin@quiz.in",password,"admin",True)
         db.session.add(row)
         db.session.commit()
 
@@ -984,6 +987,9 @@ def login():
                 session['user']['permissions'] = permissions_object[role]
                 session['user']['allow_to_set_password'] = True
 
+                if password == "admin":
+                    return redirect(url_for("setpassword"))
+
                 message = "You are logged in as %s" % email
                 logging.debug(user.verified)
                 login_log.debug("Logged in as %s with IP %s" % (email, ip_address))
@@ -1009,6 +1015,7 @@ def logout():
     login_log.debug("%s logged out with IP %s." % (session['user']["email"], ip_address))
     
     session.pop('user', None)
+    session.pop('TestID', None)
     return redirect(url_for('login'))
 
 def sendMail(encode='Testing', code='Testing', email='rguktemailtest@gmail.com'):
@@ -1172,11 +1179,21 @@ def setpassword():
 #     session.pop('adminemail', None)
 #     return redirect(url_for('adminlogin'))
 
+def createDefaultTest():
+    return redirect(url_for("create"))
+
 @app.route('/admin')
 @admin_login_required
 def admin():
-    return render_template('admin.html')    
-    
+    # app.logger.info('Tests List %s' %len(Tests.query.all()))
+    tests = Tests.query.all()
+    if len(tests) != 0:
+        session["TestID"] = tests[0].name
+        session["start_date"] = tests[0].start_date
+        session["end_date"] = tests[0].end_date
+        return render_template('admin.html')    
+    else:
+        return createDefaultTest()
     # if 'adminemail' in session:
     #     return render_template('admin.html')    
     # return redirect(url_for('adminlogin'))
@@ -1190,7 +1207,8 @@ def validate_name(name):
 
 def validate_date(date):
     today = datetime.now()
-    return datetime.strptime(date, '%d/%m/%Y') > today
+    app.logger.info('date %s' %date)
+    return datetime.strptime(date, '%d-%m-%Y %H:%M') > today
 
 def validate_file(file_name,data):
     file_report = {}
@@ -1224,33 +1242,40 @@ def save_file(folder_name,file_name,data):
 @admin_login_required
 def create():
     admin = session["user"]['email']
-
+    # return redirect(url_for("admin"))
     if request.method == "GET":
-        session["message"] = {}
-        app.logger.info('Create Test Page accessed by %s' %admin)
-        return render_template("create.html")
+    #     session["message"] = {}
+    #     app.logger.info('Create Test Page accessed by %s' %admin)
+    #     return render_template("create.html")
 
-    if request.method=="POST":
-        test_name = request.form['name']
+    # if request.method=="POST":
+        # test_name = request.form['name']
+        test_name = "English Literacy Test"
         nameValid = validate_name(test_name)
 
-        hosting_date = request.form['datepicker']
-        dateValid = validate_date(hosting_date)
+        # hosting_date = request.form['datepicker']
+        start_date = "30-07-2017 12:00"
+        end_date = "30-08-2017 12:00"
+        startdateValid = validate_date(start_date)
+        enddateValid = validate_date(end_date)
 
         testValid = False
-        if nameValid and dateValid:
-            test = Tests(test_name, session["user"]['email'], hosting_date)
+        if nameValid and startdateValid and enddateValid:
+            test = Tests(test_name, session["user"]['email'], start_date, end_date)
             db.session.add(test)
             db.session.commit()
             testValid = True
             app.logger.info('%s created a Test - %s' %(admin,test_name))
             session["TestID"] = test_name
-            session["hosting_date"] = hosting_date
-            return redirect(url_for("addstudents"))
+            session["start_date"] = start_date
+            session["end_date"] = end_date
+            # return redirect(url_for("addstudents"))
+            return redirect(url_for("admin"))
         else:
-            session["message"] = {"Valid Name":nameValid, "Valid Date":dateValid, "Valid Test":testValid}
+            # session["message"] = {"Valid Name":nameValid, "Valid Date":dateValid, "Valid Test":testValid}
             app.logger.info('Failed to create Test - %s' %test_name)
-            return render_template("create.html")
+            # return render_template("create.html")
+            return redirect(url_for("admin"))
 
 def loadTestSet():
     student = Users.query.filter_by(user_type="student").first()
@@ -1270,51 +1295,100 @@ def isRegistered(studentemail):
 #         return testid in studentrow.getTests()
 #     return False
 
-@app.route('/addstudents', methods=["GET", "POST"])
-@admin_login_required
-def addstudents():
+def updateDate(start_date,end_date):
     testID = session["TestID"]
-    hosting_date = session["hosting_date"]
+    test = Tests.query.filter_by(name=testID).first()
+    test.start_date = start_date
+    test.end_date = end_date
+    db.session.commit()
+    session["start_date"] = start_date
+    session["end_date"] = end_date
+    session["datevalid"] = "Start Date %s and End Date %s are Valid and successfully Updated." %(str(start_date),str(end_date))
 
-    app.logger.info('Add Students Page (%s) accessed by %s' %(testID,admin))
+def updateStudents(students_list):
+    testID = session["TestID"]
+    for student in students_list:
+        student = student.lstrip()
+        if student == "":
+            continue
+        if isRegistered(student):
+            qry = StudentTests.query.filter(StudentTests.emailid == student).first()
+            if qry != None:
+                if testID in qry.testslist:
+                    session["students"].append(student+" is already Invited.")
+                else:
+                    qry.testslist.append(testID)
+                    db.session.commit()
+            else:
+                tests = [testID]
+                studenttests = StudentTests(student,tests)
+                db.session.add(studenttests)
+                db.session.commit()
+                session["students"].append(student+" is Invited.")
+                app.logger.info('%s is Invited' %student)
+        else:
+            session["students"].append(student+" is not Registered.")
+            app.logger.info('%s is not registered' %student)
+
+
+@app.route('/edit', methods=["GET", "POST"])
+@admin_login_required
+def edit():
+    
+    testID = session["TestID"]
+    app.logger.info('Edit Test Page (%s) accessed by %s' %(testID,admin))
 
     # Create sample sudents for testing
     loadTestSet()
     
     if request.method == "GET":
-        session['students'] = []
+        session["messages"] = False
         return render_template("add_students.html")
     
     if request.method == "POST":
-        session["students"] = []
+        session["messages"] = True
         try:
-            students_list = request.form["studentslist"].split(", ")
-            for student in students_list:
-                if student == "":
-                    continue
-                if isRegistered(student):
-                    qry = StudentTests.query.filter(StudentTests.emailid == student).first()
-                    if qry != None:
-                        if testID in qry.testslist:
-                            session["students"].append(student+" is already Invited.")
-                        else:
-                            qry.testslist.append(testID)
-                            db.session.commit()
-                    else:
-                        tests = [testID]
-                        studenttests = StudentTests(student,tests)
-                        db.session.add(studenttests)
-                        db.session.commit()
-                        session["students"].append(student+" is Invited.")
-                        app.logger.info('%s is Invited' %student)
+            start_date = request.form["datetimepicker1"]
+            end_date = request.form["datetimepicker2"]
+            validate_start_date = validate_date(start_date)
+            validate_end_date = validate_date(end_date)
+            app.logger.info('valid s date %s' %validate_start_date)
+            app.logger.info('valid e date %s' %validate_end_date)
+            if validate_start_date:
+                if validate_end_date:
+                    updateDate(start_date,end_date)
                 else:
-                    session["students"].append(student+" is not Registered.")
-                    app.logger.info('%s is not registered' %student)
+                    session["startdatevalid"] = "End Date %s is not Valid." %str(end_date)
+            else:
+                session["enddatevalid"] = "Start Date %s is not Valid." %str(start_date)
+
+
+            # hosting_date = request.form["datepicker"]
+            # dateValid = validate_date(hosting_date)
+            # if dateValid:
+            #     updateDate(hosting_date)
+            # else:
+            #     session["datevalid"] = "%s is not Valid." %str(hosting_date)
+
+            # students_list = request.form["studentslist"]
+            # app.logger.info('Students List length %d' %len(students_list))
+            # if len(students_list) != 0:
+            #     students_list = students_list.split(",")
+            #     updateStudents(students_list)
+
         except Exception as e:
             session["students"].append(e)
 
         app.logger.info('%s added %s to %s' %(admin,session["students"],testID))
         return render_template("add_students.html")
+
+def getStudentsList(test):
+    result = StudentTests.query.all()
+    students = []
+    for i in result:
+        if test in i.testslist:
+            students.append(i.emailid)
+    return students
 
 @app.route('/loadtests', methods=["GET"])
 @admin_login_required
@@ -1326,7 +1400,10 @@ def loadtests():
     final["data"] = []
     for test in result:
         test = str(test).split("::")
-        button = "<a href='#' class='btn btn-sm btn-primary' disabled>Preview Test</a>"
+        test.append(str(getStudentsList(test[0]))[1:-2])
+        button = "<a href='/edit' class='btn btn-sm btn-primary'>Edit Test</a>"
+        test.append(button)
+        button = "<a href='#' class='btn btn-sm btn-success' disabled>Preview Test</a>"
         test.append(button)
         final["data"].append(test)
     return json.dumps(final)

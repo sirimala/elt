@@ -1,32 +1,106 @@
 {%extends "base.html"%}
 {%block title%}Add Students{%endblock%}
+{% block styles %}
+	<link href="//code.jquery.com/ui/1.10.2/themes/smoothness/jquery-ui.css" rel="Stylesheet"></link>
+	<script src="//code.jquery.com/ui/1.10.2/jquery-ui.js" ></script>
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.css" rel="Stylesheet"></link>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.12.0/moment.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js" ></script>
+{% endblock %}
 {%block body%}
 <div class="container-fluid">
 	<div class="row">
 		<div class="col-md-6 col-sm-12 panel" style="background: #eee; padding-left: 3%; padding-right: 3%">
-			<br><h3>Create Test</h3>
+			<br><h3>Edit Test</h3>
 			<hr style="border-top: 1px solid black">
-			<h4>Test ID: {{session.TestID}}</h4>
-			<h4>Hosting Date: {{session.hosting_date}}</h4>
-			<h4>Add Students</h4>
-			<form method="post" action="/addstudents" enctype=multipart/form-data>
+			<h4>Test ID: {{session.TestID}}</h4><br>
+			<!-- <h4>Hosting Date: {{session.hosting_date}}</h4> -->
+			<!-- <h4>Add Students</h4> -->
+			<form method="post" action="/edit" enctype=multipart/form-data>
+			  <!-- <div class="form-group">
+			    <label for="datepicker">Test Hosting Date</label>
+			    <input type="text" class="form-control" id="datepicker" name="datepicker" placeholder="Pick a Valid Date">
+			  </div> -->
+		        <div class="form-group">
+		    		<label for="datetimepicker1">Test Start Date</label>    
+		            <div class='input-group date' id='datetimepicker1'>
+		                <input type='text' name='datetimepicker1' class="form-control" />
+		                <span class="input-group-addon">
+		                    <span class="glyphicon glyphicon-calendar"></span>
+		                </span>
+		            </div>
+		        </div>
+		        <div class="form-group">
+		    		<label for="datetimepicker1">Test End Date</label>    
+		            <div class='input-group date' id='datetimepicker2'>
+		                <input type='text' name='datetimepicker2' class="form-control" />
+		                <span class="input-group-addon">
+		                    <span class="glyphicon glyphicon-calendar"></span>
+		                </span>
+		            </div>
+		        </div>
 			  <div class="form-group">
-				<textarea id="studentslist" size="50" name="studentslist" class="form-control"></textarea>
+				<label for="studentslist">Add Students</label>
+			  	<textarea id="studentslist" class='form-control' name="studentslist" rows="3" data-min-rows='3' placeholder='Start typing an email address and pick from suggestions..'></textarea>
 			  </div>
-			  <button type="submit" class="btn btn-primary">Add Students</button>
+			  <button type="submit" class="btn btn-primary">Save Changes</button>
 			</form>
 		</div>
 		<div class="col-md-6 col-sm-12" style="background: white">
-			<br><h3>Result</h3>
-			<hr style="border-top: 1px solid black">
-			{% for student in session['students'] %}
-				<h4>{{student}}</h4>
-			{% endfor %}
+			{% if session["messages"] %}
+				<br><h3>Result</h3>
+				<hr style="border-top: 1px solid black">
+				{% if session["datevalid"] %}
+					<p class="panel panel-success">{{session["datevalid"]}}</p>
+				{% else %}
+					<p class="panel panel-danger">{{session["startdatevalid"]}}</p>
+					<p class="panel panel-danger">{{session["enddatevalid"]}}</p>
+				{% endif %}
+				<h4>{{session['students']|length}} students added.</h4>
+				{% for student in session['students'] %}
+					<p class="panel panel-success">{{student}}</p>
+				{% endfor %}
+			{% endif %}
 		</div>
-	</div>
+	<!-- </div> -->
 </div>
 {%block script%}
 <script type="text/javascript">
+ 	
+ 	//initialize datepicker 
+ 	$(function () {
+        $('#datetimepicker1').datetimepicker({
+        	format: 'DD-MM-YYYY HH:mm',
+        	stepping: 30,
+        	minDate: new Date()
+        });
+        $('#datetimepicker2').datetimepicker({
+        	format: 'DD-MM-YYYY HH:mm',
+        	stepping: 30,
+            useCurrent: false
+        });
+        $("#datetimepicker1").on("dp.change", function (e) {
+            $('#datetimepicker2').data("DateTimePicker").minDate(e.date);
+        });
+        $("#datetimepicker2").on("dp.change", function (e) {
+            $('#datetimepicker1').data("DateTimePicker").maxDate(e.date);
+        });
+    });
+
+ 	hosting_date = "{{session['hosting_date']}}"
+ 	//prefil form
+ 	students = "{{session['students']}}"
+ 	
+ 	if(students != [])
+ 		//Used Array to convert the psuedo-array into JS array
+ 		students = Array.prototype.join.call(students, ",\n").substr(1,-2);
+
+ 	$("#datepicker").val(hosting_date) 
+ 	$("#studentslist").val(students)
+
+ 	$(this).height( $(this)[0].scrollHeight );
+ 	//resize textarea according to students list
+
 	// code for auto-suggesting student email id's
 	$( function() {
 	    function split( val ) {
@@ -62,7 +136,7 @@
 	          if ( terms.indexOf(ui.item.value) == -1)
 	          	terms.push( ui.item.value );
 	          	terms.push( "" );
-	          	this.value = terms.join( ", " );
+	          	this.value = terms.join( ",\n" );
 	          return false;
 	        }
 	      });
