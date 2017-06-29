@@ -6,7 +6,7 @@ from sqlalchemy import cast
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import JSON
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import json
 import os
@@ -195,6 +195,11 @@ e1_start=801;e1_end=809;e2_start=1201;e2_end=1208;e3_start=1601;e3_end=1701;
 e4_start=1701;e4_end=1702;
 global status
 global errortype
+
+@app.errorhandler
+def default_error_handler(error):
+    '''Default error handler'''
+    return {'message': str(error)}, getattr(error, 'code', 500)
 
 def to_pretty_json(value):
     return json.dumps(value, sort_keys=True, indent=4, separators=(',', ': '))
@@ -559,13 +564,20 @@ def list_files(startpath):
         for f in files:
             app.logger.info('{}{}'.format(subindent, f))
 
+@app.before_request
+def before_request():
+    db.session.permanent = True
+    app.permanent_session_lifetime = timedelta(minutes=15)
+    db.session.modified = True
+    app.logger.info(["Request received", app.permanent_session_lifetime])
+
 @app.route('/test')
 def test():
     app.logger.debug('in testing')
     app.logger.info('in testing1')
     # app.logger.info(os.walk(app.static_folder))
-    list_files(app.static_folder)
-    return ""
+    # list_files(app.static_folder)
+    return str(dir(db.session.expire))
 
 @app.route("/testmail")
 def testmail():
@@ -577,8 +589,10 @@ def testmail():
 @app.route('/')
 @login_required
 def index():
-    return render_template('index.html')
-
+    # return render_template('index.html')
+    if 'role' not in session['user']:
+        return "Your account still not activated, Please come here after activation of your account."
+    return redirect(url_for(session['user']['role']))
 @app.route('/javascripts/<path:path>')
 def send_javascripts(path):
     app.logger.info("seeking for "+path)
@@ -1000,7 +1014,7 @@ def logout():
 def sendMail(encode='Testing', code='Testing', email='rguktemailtest@gmail.com'):
     app.logger.debug("send mail function")
     body = """Dear Student,<br> This email message is sent by the online quiz portal. 
-    By clicking the link below you are verifying that this email belongs to you and your account will be actiavted. 
+    By clicking the link below you are verifying that this email belongs to you and your account will be activated. 
     Click on the link below and follow the instructions to complete the registration process. 
     <a href=%s/verify/%s/%s>Verify</a> """ % (request.host, encode, code)
     response = requests.post(
@@ -1057,7 +1071,7 @@ def registration():
                 sent = sendMail(encode, code, email)
                 if sent:
                     app.logger.debug("an email has been sent to your email address "+email+". Please go to your inbox and click on the link to verify and activate your account")
-                    message = "an email has been sent to your email address "+email+". Please go to your inbox and click on the link to verify and activate your account"
+                    message = "An email has been sent to your email address "+email+". Please go to your inbox and click on the link to verify and activate your account"
                     message_staus = "success"
                 else:
                     db.session.delete(user)
