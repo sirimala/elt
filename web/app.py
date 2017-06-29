@@ -273,23 +273,25 @@ class Students(db.Model):
 class Tests(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=True)
-    hosting_date = db.Column(db.String(80))
+    start_date = db.Column(db.String(80))
+    end_date = db.Column(db.String(80))
     # json = db.Column(db.String(1000))
     creator = db.Column(db.String(180))
     time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    def __init__(self, name, creator, hosting_date):
+    def __init__(self, name, creator, start_date, end_date):
         self.name = name
         self.creator = creator
-        self.hosting_date = hosting_date
+        self.start_date = start_date
+        self.end_date = end_date
         self.time = datetime.utcnow()
         # self.json = json
     def isHosted(self):
         today = datetime.now()
-        return datetime.strptime(self.hosting_date, '%d/%m/%Y') == today
+        return datetime.strptime(self.end_date, '%d-%m-%Y %H:%M') < today
 
     def __repr__(self):
-        return str(self.name)+"::"+str(self.hosting_date)+"::"+str(self.creator)
+        return str(self.name)+"::"+str(self.start_date)+"::"+str(self.end_date)
 
 class StudentTests(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1163,7 +1165,8 @@ def admin():
     tests = Tests.query.all()
     if len(tests) != 0:
         session["TestID"] = tests[0].name
-        session["hosting_date"] = tests[0].hosting_date
+        session["start_date"] = tests[0].start_date
+        session["end_date"] = tests[0].end_date
         return render_template('admin.html')    
     else:
         return createDefaultTest()
@@ -1180,7 +1183,8 @@ def validate_name(name):
 
 def validate_date(date):
     today = datetime.now()
-    return datetime.strptime(date, '%d/%m/%Y') > today
+    app.logger.info('date %s' %date)
+    return datetime.strptime(date, '%d-%m-%Y %H:%M') > today
 
 def validate_file(file_name,data):
     file_report = {}
@@ -1226,22 +1230,25 @@ def create():
         nameValid = validate_name(test_name)
 
         # hosting_date = request.form['datepicker']
-        hosting_date = "30/06/2017"
-        dateValid = validate_date(hosting_date)
+        start_date = "30-07-2017 12:00"
+        end_date = "30-08-2017 12:00"
+        startdateValid = validate_date(start_date)
+        enddateValid = validate_date(end_date)
 
         testValid = False
-        if nameValid and dateValid:
-            test = Tests(test_name, session["user"]['email'], hosting_date)
+        if nameValid and startdateValid and enddateValid:
+            test = Tests(test_name, session["user"]['email'], start_date, end_date)
             db.session.add(test)
             db.session.commit()
             testValid = True
             app.logger.info('%s created a Test - %s' %(admin,test_name))
             session["TestID"] = test_name
-            session["hosting_date"] = hosting_date
+            session["start_date"] = start_date
+            session["end_date"] = end_date
             # return redirect(url_for("addstudents"))
             return redirect(url_for("admin"))
         else:
-            session["message"] = {"Valid Name":nameValid, "Valid Date":dateValid, "Valid Test":testValid}
+            # session["message"] = {"Valid Name":nameValid, "Valid Date":dateValid, "Valid Test":testValid}
             app.logger.info('Failed to create Test - %s' %test_name)
             # return render_template("create.html")
             return redirect(url_for("admin"))
@@ -1264,13 +1271,15 @@ def isRegistered(studentemail):
 #         return testid in studentrow.getTests()
 #     return False
 
-def updateDate(hosting_date):
+def updateDate(start_date,end_date):
     testID = session["TestID"]
     test = Tests.query.filter_by(name=testID).first()
-    test.hosting_date = hosting_date
+    test.start_date = start_date
+    test.end_date = end_date
     db.session.commit()
-    session["hosting_date"] = hosting_date
-    session["datevalid"] = "%s is Valid and successfully Updated." %str(hosting_date)
+    session["start_date"] = start_date
+    session["end_date"] = end_date
+    session["datevalid"] = "Start Date %s and End Date %s are Valid and successfully Updated." %(str(start_date),str(end_date))
 
 def updateStudents(students_list):
     testID = session["TestID"]
@@ -1315,18 +1324,33 @@ def edit():
     if request.method == "POST":
         session["messages"] = True
         try:
-            hosting_date = request.form["datepicker"]
-            dateValid = validate_date(hosting_date)
-            if dateValid:
-                updateDate(hosting_date)
+            start_date = request.form["datetimepicker1"]
+            end_date = request.form["datetimepicker2"]
+            validate_start_date = validate_date(start_date)
+            validate_end_date = validate_date(end_date)
+            app.logger.info('valid s date %s' %validate_start_date)
+            app.logger.info('valid e date %s' %validate_end_date)
+            if validate_start_date:
+                if validate_end_date:
+                    updateDate(start_date,end_date)
+                else:
+                    session["startdatevalid"] = "End Date %s is not Valid." %str(end_date)
             else:
-                session["datevalid"] = "%s is not Valid." %str(hosting_date)
+                session["enddatevalid"] = "Start Date %s is not Valid." %str(start_date)
 
-            students_list = request.form["studentslist"]
-            app.logger.info('Students List length %d' %len(students_list))
-            if len(students_list) != 0:
-                students_list = students_list.split(",")
-                updateStudents(students_list)
+
+            # hosting_date = request.form["datepicker"]
+            # dateValid = validate_date(hosting_date)
+            # if dateValid:
+            #     updateDate(hosting_date)
+            # else:
+            #     session["datevalid"] = "%s is not Valid." %str(hosting_date)
+
+            # students_list = request.form["studentslist"]
+            # app.logger.info('Students List length %d' %len(students_list))
+            # if len(students_list) != 0:
+            #     students_list = students_list.split(",")
+            #     updateStudents(students_list)
 
         except Exception as e:
             session["students"].append(e)
