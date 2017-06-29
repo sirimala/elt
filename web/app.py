@@ -595,6 +595,15 @@ def index():
     if 'role' not in session['user']:
         return "Your account still not activated, Please come here after activation of your account."
     return redirect(url_for(session['user']['role']))
+
+@app.route('/quiz')
+@login_required
+def quiz():
+    # return render_template('index.html')
+    if 'role' not in session['user']:
+        return "Your account still not activated, Please come here after activation of your account."
+    return render_template('index.html')
+
 @app.route('/javascripts/<path:path>')
 def send_javascripts(path):
     app.logger.info("seeking for "+path)
@@ -1186,14 +1195,17 @@ def createDefaultTest():
 @admin_login_required
 def admin():
     # app.logger.info('Tests List %s' %len(Tests.query.all()))
-    tests = Tests.query.all()
-    if len(tests) != 0:
-        session["TestID"] = tests[0].name
-        session["start_date"] = tests[0].start_date
-        session["end_date"] = tests[0].end_date
-        return render_template('admin.html')    
-    else:
-        return createDefaultTest()
+    try:
+        tests = Tests.query.all()
+        if len(tests) != 0:
+            session["TestID"] = tests[0].name
+            session["start_date"] = tests[0].start_date
+            session["end_date"] = tests[0].end_date
+            return render_template('admin.html')    
+        else:
+            return createDefaultTest()
+    except Exception as e:
+        return createDefaultTest()    
     # if 'adminemail' in session:
     #     return render_template('admin.html')    
     # return redirect(url_for('adminlogin'))
@@ -1339,7 +1351,7 @@ def edit():
     app.logger.info('Edit Test Page (%s) accessed by %s' %(testID,admin))
 
     # Create sample sudents for testing
-    loadTestSet()
+    # loadTestSet()
     
     if request.method == "GET":
         session["messages"] = False
@@ -1390,6 +1402,44 @@ def getStudentsList(test):
             students.append(i.emailid)
     return students
 
+def sendNotifyMail(email='rguktemailtest@gmail.com'):
+    try:
+        app.logger.debug("send notify mail function")
+        body = """Dear Student,<br> This email message is sent by the online quiz portal. 
+        Click on the link below and follow the instructions to take the test. 
+        <a href=%s/quiz>Test Link</a> """ % (request.host)
+        response = requests.post(
+            "https://api.mailgun.net/v3/rguktrkv.ac.in/messages",
+            auth=("api", os.environ['YOUR_MAIL_GUN_KEY']),
+            data={"from": "RGUKT QUIZ <news@rguktrkv.ac.in>",
+                  "to": [email],
+                  "subject": 'RGUKT QUIZ LINK',
+                  "text": '',
+                  "html": body})
+        app.logger.info([email, response.status_code, response.text])
+        return response
+    except Exception as e:
+        app.logger.info(e)
+    
+
+@app.route('/notify/<testid>', methods=["GET", "POST"])
+@admin_login_required
+def notify(testid):  
+    testID = testid
+    if testID == None or testID == "":
+        return json.dumps([{}])  
+          
+    student_emails = getStudentsList(testID)
+    mail_responses = []
+    for email in student_emails:
+        response = sendNotifyMail(email=email)
+        mail_responses.append({
+            "mail":email,
+            "status_code":response.status_code,
+            "status_message":response.text
+        })
+    return json.dumps(mail_responses)
+
 @app.route('/loadtests', methods=["GET"])
 @admin_login_required
 def loadtests():
@@ -1400,10 +1450,12 @@ def loadtests():
     final["data"] = []
     for test in result:
         test = str(test).split("::")
-        test.append(str(getStudentsList(test[0]))[1:-2])
+        test.append(str(getStudentsList(test))[1:-2])
         button = "<a href='/edit' class='btn btn-sm btn-primary'>Edit Test</a>"
         test.append(button)
         button = "<a href='#' class='btn btn-sm btn-success' disabled>Preview Test</a>"
+        test.append(button)
+        button = "<a href='/notify/"+test[0]+"' class='btn btn-sm btn-success'>Notify</a>"
         test.append(button)
         final["data"].append(test)
     return json.dumps(final)
