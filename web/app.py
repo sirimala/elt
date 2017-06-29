@@ -1219,7 +1219,6 @@ def validate_name(name):
 
 def validate_date(date):
     today = datetime.now()
-    app.logger.info('date %s' %date)
     return datetime.strptime(date, '%d-%m-%Y %H:%M') > today
 
 def validate_file(file_name,data):
@@ -1321,6 +1320,7 @@ def updateStudents(students_list):
     testID = session["TestID"]
     for student in students_list:
         student = student.lstrip()
+        student = student.rstrip()
         if student == "":
             continue
         if isRegistered(student):
@@ -1359,21 +1359,21 @@ def edit():
     
     if request.method == "POST":
         session["messages"] = True
+        session["students"] = []
         try:
             start_date = request.form["datetimepicker1"]
             end_date = request.form["datetimepicker2"]
-            validate_start_date = validate_date(start_date)
-            validate_end_date = validate_date(end_date)
-            app.logger.info('valid s date %s' %validate_start_date)
-            app.logger.info('valid e date %s' %validate_end_date)
-            if validate_start_date:
-                if validate_end_date:
-                    updateDate(start_date,end_date)
-                else:
-                    session["startdatevalid"] = "End Date %s is not Valid." %str(end_date)
-            else:
-                session["enddatevalid"] = "Start Date %s is not Valid." %str(start_date)
+            if start_date != "" and end_date != "":
+                validate_start_date = validate_date(start_date)
+                validate_end_date = validate_date(end_date)
 
+                if validate_start_date:
+                    if validate_end_date:
+                        updateDate(start_date,end_date)
+                    else:
+                        session["startdatevalid"] = "End Date %s is not Valid." %str(end_date)
+                else:
+                    session["enddatevalid"] = "Start Date %s is not Valid." %str(start_date)
 
             # hosting_date = request.form["datepicker"]
             # dateValid = validate_date(hosting_date)
@@ -1382,11 +1382,12 @@ def edit():
             # else:
             #     session["datevalid"] = "%s is not Valid." %str(hosting_date)
 
-            # students_list = request.form["studentslist"]
-            # app.logger.info('Students List length %d' %len(students_list))
-            # if len(students_list) != 0:
-            #     students_list = students_list.split(",")
-            #     updateStudents(students_list)
+            students_list = request.form["studentslist"]
+            app.logger.info('Students List length %d' %len(students_list))
+            if len(students_list) != 0:
+                students_list = students_list.split("\n")
+                app.logger.info('Students List %s' %students_list)
+                updateStudents(students_list)
 
         except Exception as e:
             session["students"].append(e)
@@ -1394,13 +1395,16 @@ def edit():
         app.logger.info('%s added %s to %s' %(admin,session["students"],testID))
         return render_template("add_students.html")
 
-def getStudentsList(test):
+@app.route('/getStudentsList', methods=["GET"])
+@admin_login_required
+def getStudentsList():
+    test = session["TestID"]
     result = StudentTests.query.all()
     students = []
     for i in result:
         if test in i.testslist:
             students.append(i.emailid)
-    return students
+    return json.dumps({"students":students})
 
 def sendNotifyMail(email='rguktemailtest@gmail.com'):
     try:
@@ -1450,7 +1454,7 @@ def loadtests():
     final["data"] = []
     for test in result:
         test = str(test).split("::")
-        test.append(str(getStudentsList(test))[1:-2])
+        test.append(str(getStudentsList())[2:-2])
         button = "<a href='/edit' class='btn btn-sm btn-primary'>Edit Test</a>"
         test.append(button)
         button = "<a href='#' class='btn btn-sm btn-success' disabled>Preview Test</a>"
