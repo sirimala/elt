@@ -1433,7 +1433,7 @@ def notify(testid):
     if testID == None or testID == "":
         return json.dumps([{}])  
           
-    student_emails = getStudentsList(testID)
+    student_emails = eval(getStudentsList())['students']
     mail_responses = []
     for email in student_emails:
         response = sendNotifyMail(email=email)
@@ -1454,7 +1454,9 @@ def loadtests():
     final["data"] = []
     for test in result:
         test = str(test).split("::")
-        test.append(str(getStudentsList())[2:-2])
+        app.logger.info(test)
+        test.append(eval(getStudentsList())["students"])
+        app.logger.info(test)
         button = "<a href='/edit' class='btn btn-sm btn-primary'>Edit Test</a>"
         test.append(button)
         button = "<a href='#' class='btn btn-sm btn-success' disabled>Preview Test</a>"
@@ -1462,6 +1464,7 @@ def loadtests():
         button = "<a href='/notify/"+test[0]+"' class='btn btn-sm btn-success'>Notify</a>"
         test.append(button)
         final["data"].append(test)
+    app.logger.info(str(json.dumps(final)))
     return json.dumps(final)
 
 @app.route('/autocomplete', methods=['GET'])
