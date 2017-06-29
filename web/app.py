@@ -1153,11 +1153,18 @@ def setpassword():
 #     session.pop('adminemail', None)
 #     return redirect(url_for('adminlogin'))
 
+def createDefaultTest():
+    return redirect(url_for("create"))
+
 @app.route('/admin')
 @admin_login_required
 def admin():
-    return render_template('admin.html')    
-    
+    # app.logger.info('Tests List %s' %len(Tests.query.all()))
+    tests = Tests.query.all()
+    if len(tests) != 0:
+        return render_template('admin.html')    
+    else:
+        return createDefaultTest()
     # if 'adminemail' in session:
     #     return render_template('admin.html')    
     # return redirect(url_for('adminlogin'))
@@ -1229,7 +1236,8 @@ def create():
             app.logger.info('%s created a Test - %s' %(admin,test_name))
             session["TestID"] = test_name
             session["hosting_date"] = hosting_date
-            return redirect(url_for("addstudents"))
+            # return redirect(url_for("addstudents"))
+            return redirect(url_for("admin"))
         else:
             session["message"] = {"Valid Name":nameValid, "Valid Date":dateValid, "Valid Test":testValid}
             app.logger.info('Failed to create Test - %s' %test_name)
