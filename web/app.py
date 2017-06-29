@@ -1264,6 +1264,40 @@ def isRegistered(studentemail):
 #         return testid in studentrow.getTests()
 #     return False
 
+def updateDate(hosting_date):
+    testID = session["TestID"]
+    test = Tests.query.filter_by(name=testID).first()
+    test.hosting_date = hosting_date
+    db.session.commit()
+    session["hosting_date"] = hosting_date
+    session["datevalid"] = "%s is Valid and successfully Updated." %str(hosting_date)
+
+def updateStudents(students_list):
+    testID = session["TestID"]
+    for student in students_list:
+        student = student.lstrip()
+        if student == "":
+            continue
+        if isRegistered(student):
+            qry = StudentTests.query.filter(StudentTests.emailid == student).first()
+            if qry != None:
+                if testID in qry.testslist:
+                    session["students"].append(student+" is already Invited.")
+                else:
+                    qry.testslist.append(testID)
+                    db.session.commit()
+            else:
+                tests = [testID]
+                studenttests = StudentTests(student,tests)
+                db.session.add(studenttests)
+                db.session.commit()
+                session["students"].append(student+" is Invited.")
+                app.logger.info('%s is Invited' %student)
+        else:
+            session["students"].append(student+" is not Registered.")
+            app.logger.info('%s is not registered' %student)
+
+
 @app.route('/edit', methods=["GET", "POST"])
 @admin_login_required
 def edit():
@@ -1275,47 +1309,25 @@ def edit():
     loadTestSet()
     
     if request.method == "GET":
-        session['students'] = []
+        session["messages"] = False
         return render_template("add_students.html")
     
     if request.method == "POST":
-        session["students"] = []
+        session["messages"] = True
         try:
-            hosting_date = request.form["hosting_date"]
+            hosting_date = request.form["datepicker"]
             dateValid = validate_date(hosting_date)
-            
             if dateValid:
-                test = Tests.query.filter_by(name=testID).first()
-                test.hosting_date = hosting_date
-                db.session.commit()
-                session["hosting_date"] = hosting_date
-                session["datevalid"] = "%s is Valid and successfully Updated." %str(hosting_date)
+                updateDate(hosting_date)
             else:
                 session["datevalid"] = "%s is not Valid." %str(hosting_date)
 
-            students_list = request.form["studentslist"].split(",")
-            for student in students_list:
-                student = student.lstrip()
-                if student == "":
-                    continue
-                if isRegistered(student):
-                    qry = StudentTests.query.filter(StudentTests.emailid == student).first()
-                    if qry != None:
-                        if testID in qry.testslist:
-                            session["students"].append(student+" is already Invited.")
-                        else:
-                            qry.testslist.append(testID)
-                            db.session.commit()
-                    else:
-                        tests = [testID]
-                        studenttests = StudentTests(student,tests)
-                        db.session.add(studenttests)
-                        db.session.commit()
-                        session["students"].append(student+" is Invited.")
-                        app.logger.info('%s is Invited' %student)
-                else:
-                    session["students"].append(student+" is not Registered.")
-                    app.logger.info('%s is not registered' %student)
+            students_list = request.form["studentslist"]
+            app.logger.info('Students List length %d' %len(students_list))
+            if len(students_list) != 0:
+                students_list = students_list.split(",")
+                updateStudents(students_list)
+
         except Exception as e:
             session["students"].append(e)
 

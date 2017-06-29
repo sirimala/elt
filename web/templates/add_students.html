@@ -26,14 +26,17 @@
 			</form>
 		</div>
 		<div class="col-md-6 col-sm-12" style="background: white">
-			<br><h3>Result</h3>
-			<hr style="border-top: 1px solid black">
-			{% if session["datevalid"] %}
-				<h4>{{session["datevalid"]}}</h4>
+			{% if session["messages"] %}
+				<br><h3>Result</h3>
+				<hr style="border-top: 1px solid black">
+				{% if session["datevalid"] %}
+					<h4>{{session["datevalid"]}}</h4>
+				{% endif %}
+				<h4>{{session['students']|length}} students added.</h4>
+				{% for student in session['students'] %}
+					<h5>{{student}}</h5>
+				{% endfor %}
 			{% endif %}
-			{% for student in session['students'] %}
-				<h4>{{student}}</h4>
-			{% endfor %}
 		</div>
 	<!-- </div> -->
 </div>
@@ -44,6 +47,17 @@
  	$(function(){
  		$( "#datepicker" ).datepicker({dateFormat: 'dd/mm/yy'});
  	});
+
+ 	//prefil form
+ 	hosting_date = "{{session['hosting_date']}}"
+ 	students = "{{session['students']}}"
+ 	
+ 	if(students != [])
+ 		//Used Array to convert the psuedo-array into JS array
+ 		students = Array.prototype.join.call(students, ",\n").substr(1,-2);
+
+ 	$("#datepicker").val(hosting_date) 
+ 	$("#studentslist").val(students)
 
  	//resize textarea according to students list
  	$(this).height( $(this)[0].scrollHeight );
