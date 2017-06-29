@@ -1162,6 +1162,8 @@ def admin():
     # app.logger.info('Tests List %s' %len(Tests.query.all()))
     tests = Tests.query.all()
     if len(tests) != 0:
+        session["TestID"] = tests[0].name
+        session["hosting_date"] = tests[0].hosting_date
         return render_template('admin.html')    
     else:
         return createDefaultTest()
@@ -1262,13 +1264,12 @@ def isRegistered(studentemail):
 #         return testid in studentrow.getTests()
 #     return False
 
-@app.route('/addstudents', methods=["GET", "POST"])
+@app.route('/edit', methods=["GET", "POST"])
 @admin_login_required
-def addstudents():
+def edit():
+    
     testID = session["TestID"]
-    hosting_date = session["hosting_date"]
-
-    app.logger.info('Add Students Page (%s) accessed by %s' %(testID,admin))
+    app.logger.info('Edit Test Page (%s) accessed by %s' %(testID,admin))
 
     # Create sample sudents for testing
     loadTestSet()
@@ -1280,6 +1281,18 @@ def addstudents():
     if request.method == "POST":
         session["students"] = []
         try:
+            hosting_date = request.form["hosting_date"]
+            dateValid = validate_date(hosting_date)
+            
+            if dateValid:
+                test = Tests.query.filter_by(name=testID).first()
+                test.hosting_date = hosting_date
+                db.session.commit()
+                session["hosting_date"] = hosting_date
+                session["datevalid"] = "%s is Valid and successfully Updated." %str(hosting_date)
+            else:
+                session["datevalid"] = "%s is not Valid." %str(hosting_date)
+
             students_list = request.form["studentslist"].split(",")
             for student in students_list:
                 student = student.lstrip()
@@ -1328,7 +1341,7 @@ def loadtests():
     for test in result:
         test = str(test).split("::")
         test.append(str(getStudentsList(test[0]))[1:-2])
-        button = "<a href='#' class='btn btn-sm btn-primary'>Edit Test</a>"
+        button = "<a href='/edit' class='btn btn-sm btn-primary'>Edit Test</a>"
         test.append(button)
         button = "<a href='#' class='btn btn-sm btn-success' disabled>Preview Test</a>"
         test.append(button)
