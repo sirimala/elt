@@ -1318,12 +1318,14 @@ def updateDate(start_date,end_date):
 
 def updateStudents(students_list):
     testID = session["TestID"]
+    slist = []
     for student in students_list:
         student = student.lstrip()
-        student = student.rstrip()
+        student = student.rstrip() 
         if student == "":
             continue
         if isRegistered(student):
+            slist.append(student)
             qry = StudentTests.query.filter(StudentTests.emailid == student).first()
             if qry != None:
                 if testID in qry.testslist:
@@ -1341,7 +1343,7 @@ def updateStudents(students_list):
         else:
             session["students"].append(student+" is not Registered.")
             app.logger.info('%s is not registered' %student)
-
+    session["slist"] = slist
 
 @app.route('/edit', methods=["GET", "POST"])
 @admin_login_required
@@ -1397,14 +1399,25 @@ def edit():
 
 @app.route('/getStudentsList', methods=["GET"])
 @admin_login_required
-def getStudentsList():
-    test = session["TestID"]
+def getStudentsList(test):
+    # test = session["TestID"]
     result = StudentTests.query.all()
     students = []
     for i in result:
         if test in i.testslist:
             students.append(i.emailid)
     return json.dumps({"students":students})
+
+@app.route('/prefiledit/<name>', methods=["GET"])
+@admin_login_required
+def prefiledit(name):
+    test = Tests.query.filter_by(name=name).first()
+    
+    start_date = test.start_date
+    end_date = test.end_date
+    students = eval(getStudentsList(name))["students"]
+
+    return json.dumps({"start_date":start_date, "end_date":end_date, "students":students})
 
 def sendNotifyMail(email='rguktemailtest@gmail.com'):
     try:
@@ -1433,7 +1446,7 @@ def notify(testid):
     if testID == None or testID == "":
         return json.dumps([{}])  
           
-    student_emails = eval(getStudentsList())['students']
+    student_emails = eval(getStudentsList(testID))['students']
     mail_responses = []
     for email in student_emails:
         response = sendNotifyMail(email=email)
@@ -1452,16 +1465,18 @@ def loadtests():
     result = Tests.query.filter_by(creator=creator).all()
     final = {}
     final["data"] = []
+    count = 0
     for test in result:
+        count+=1
         test = str(test).split("::")
         app.logger.info(test)
-        test.append(eval(getStudentsList())["students"])
+        test.append(eval(getStudentsList(test[0]))["students"])
         app.logger.info(test)
         button = "<a href='/edit' class='btn btn-sm btn-primary'>Edit Test</a>"
         test.append(button)
         button = "<a href='#' class='btn btn-sm btn-success' disabled>Preview Test</a>"
         test.append(button)
-        button = "<a href='/notify/"+test[0]+"' class='btn btn-sm btn-success'>Notify</a>"
+        button = "<a data-toggle='modal' data-target='#NotifyMailResponses' id='notify"+str(count)+"' name='/notify/"+test[0]+"' class='btn btn-sm btn-warning'>Notify</a>"
         test.append(button)
         final["data"].append(test)
     app.logger.info(str(json.dumps(final)))

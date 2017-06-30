@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8">
+  <title>jQuery UI Dialog - Default functionality</title>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
+  <script src="http://code.jquery.com/jquery-1.10.2.js"></script>
+  <script src="http://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+  <script>
+ $( function() {
+    $( "#dialog" ).dialog(
+    {
+      autoOpen: false,
+      modal: true,
+      open: function(){
+        //set #dialog to close after some milleseconds. 5000 milleseconds = 5 seconds, 300000 = 5 minutes
+        setTimeout(function(){
+          $("#dialog").dialog("close");
+        }, 3000);
+        var n = 300;
+        var title = $('#dialog').dialog('option', 'title');
+        console.log(title);
+		$('#dialog').on('dialogclose', function(event) {
+			  clearInterval(n);
+    		window.clearTimeout(); 
+			});
+      },
+		});
+  });
+
+  </script>
+  </head>
+  <body>
+  <div id="dialog" title="Notification mail responses">
+  <table>
+  	<thead>
+  		<tr><th>1</th>
+  		<th>2</th></tr>
+  	</thead>
+  	<tbody>
+  		<tr>
+  			<td>1</td>
+  			<td>2</td>
+  		</tr>
+  		<tr>
+  			<td>1</td>
+  			<td>2</td>
+  			
+  		</tr>
+  		<tr>
+  			<td>1</td>
+  			<td>2</td>
+  			
+  		</tr>
+  		<tr>
+  			<td>1</td>
+  			<td>2</td>
+  			
+  		</tr>
+  		<tr>
+  			<td>1</td>
+  			<td>2</td>
+  		</tr>
+  	</tbody>
+  </table>
+</div>
+
+</div>
+</body>
+</html>

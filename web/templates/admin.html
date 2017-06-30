@@ -14,6 +14,17 @@
 	<!-- Latest compiled and minified JavaScript -->
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 	<script type="text/javascript" src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript">
+   	$(document).ready(function() {
+	    $.fn.dataTable.ext.errMode = 'throw';
+	    $('#usertable').DataTable( {
+	        "ajax": "{{ url_for('loadtests') }}",
+	        "errMode": 'throw'
+	    });
+	    
+	});
+</script>
+
 </head>
 <body style='padding: 0px; background: #eee' class="container-fluid">
 	<nav class="navbar navbar-inverse" style="margin-bottom: 0px">
@@ -48,6 +59,9 @@
 	    {%endif%}
 	  </div>
 	</nav>
+	<div id="dialog">
+		<p>Some txt goes here</p>
+	</div>
 	<div class="container-fluid">
 		<div class="row">
 			<div class="col-sm-12" style="background: white">
@@ -73,14 +87,60 @@
 			</div>
 		</div>
 	</div>
+	<div class="modal fade" id="NotifyMailResponses" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                 <h4 class="modal-title" id="myModalLabel">Modal title</h4>
+
+            </div>
+            <div class="modal-body">
+            	<table class="table">
+            		<thead>
+            			<tr>
+            				<th>Mail</th>	
+            				<th>Code</th>	
+            				<th>Message</th>	
+            			</tr>
+            		</thead>
+            		<tbody>
+            			
+            		</tbody>
+            	</table>
+                      
+            </div>
+           
+        </div>
+    </div>
+</div>
 <script type="text/javascript">
-   	$(document).ready(function() {
-	    $.fn.dataTable.ext.errMode = 'throw';
-	    $('#usertable').DataTable( {
-	        "ajax": "{{ url_for('loadtests') }}",
-	        "errMode": 'throw'
-	    });
+$(document).ready(function() {
+	$('#usertable tbody').on( 'click', 'tr td a', function (){
+	   url = $(this).attr("name");
+	  
+	   $.get( url, function( data ) {
+	   		data = JSON.parse(data);
+	   		$.each(data, function(index,jsonObject){
+	   			tr = "<tr>";
+	   			tr += "<td>"+jsonObject['mail']+"</td>"
+	   			tr += "<td>"+jsonObject['status_code']+"</td>"
+	   			tr += "<td>"+jsonObject['status_message']+"</td>"
+			    // $.each(jsonObject, function(key,val){
+			    	
+			    //     console.log("key : "+key+" ; value : "+val);
+			    //     tr += "<td>"+val+"</td>"
+			       
+			    // });
+	   			tr += "</tr>";
+
+		 		$(".modal-body table tbody").append(tr);
+			});
+		});
+
 	});
+});	
 </script>
+
 </body>
 </html>

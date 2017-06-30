@@ -77,6 +77,12 @@
  	
  	//initialize datepicker 
  	$(function () {
+ 	// 	start_date = "{{session['start_date']}}"
+ 	// end_date = "{{session['end_date']}}"
+ 	// $("#datetimepicker1").val(start_date) 
+ 	// $("#datetimepicker2").val(end_date)
+ 	// $("#studentslist").val("{{session['students']}}");
+ 	
         $('#datetimepicker1').datetimepicker({
         	format: 'DD-MM-YYYY HH:mm',
         	stepping: 30,
@@ -96,17 +102,23 @@
     });
 
  	//prefil form
- 	start_date = "{{session['start_date']}}"
- 	end_date = "{{session['end_date']}}"
- 	$("#start_date").val(start_date) 
- 	$("#end_date").val(end_date)
- 	
+ 	$.get( "/prefiledit/{{session['TestID']}}", function( data ) {
+   		data = JSON.parse(data);
+   		$('#datetimepicker1').data("DateTimePicker").date(data['start_date']);
+   		$('#datetimepicker2').data("DateTimePicker").date(data['end_date']);
+   		console.log(data['students']);
+   		$("#studentslist").html('');
+   		$.each(data['students'], function(index,val){
+	   		$("#studentslist").append(val+"\n");
+		});	
+		$("#studentslist").height( $("#studentslist")[0].scrollHeight );
+	});
  	// students = "{{session['students']}}"
  	// if(students != [])
  	// 	//Used Array to convert the psuedo-array into JS array
  	// 	students = Array.prototype.join.call(students, ",\n").substr(1,-2);
 
- 	//prefill form data
+ 	// //prefill form data
  	// $("#studentslist").val(students)
 
  	//resize textarea according to students list
