@@ -1345,6 +1345,13 @@ def updateStudents(students_list):
             app.logger.info('%s is not registered' %student)
     session["slist"] = slist
 
+@app.route('/uninvite/<email>', methods=["GET"])
+@admin_login_required
+def uninvite(email):
+    result = StudentTests.query.filter_by(emailid=email).delete()
+    db.session.commit()
+    return redirect(url_for('edit'))
+
 @app.route('/edit', methods=["GET", "POST"])
 @admin_login_required
 def edit():
