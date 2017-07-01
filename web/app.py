@@ -295,6 +295,9 @@ class Tests(db.Model):
         # self.json = json
     def isHosted(self):
         today = datetime.now()
+        app.logger.info([datetime.strptime(self.end_date, '%d-%m-%Y %H:%M') < today,
+            datetime.strptime(self.end_date, '%d-%m-%Y %H:%M'), today
+            ])
         return datetime.strptime(self.end_date, '%d-%m-%Y %H:%M') < today
 
     def __repr__(self):
@@ -350,7 +353,7 @@ class TestDetails(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email=db.Column(db.String(120))
     test= db.Column(db.Boolean())
-    teststime=db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
+    teststime=db.Column(db.DateTime(), default=datetime.utcnow)
     delays=db.Column(db.Float())
     testend= db.Column(db.Boolean())
     lastPing = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -593,10 +596,11 @@ def before_request():
 @app.route('/test')
 def test():
     app.logger.debug('in testing')
-    app.logger.info('in testing1')
+    # app.logger.info('in testing1')
     # app.logger.info(os.walk(app.static_folder))
     # list_files(app.static_folder)
-    return str(dir(db.session.expire))
+    # return str(dir(db.session.expire))
+    return render_template('quiz.html')
 
 @app.route("/testmail")
 def testmail():
@@ -613,12 +617,24 @@ def index():
         return "Your account still not activated, Please come here after activation of your account."
     return redirect(url_for(session['user']['role']))
 
+def allowed_to_take_test(testid=""):
+    email = session['user']['email']
+    studenttests = StudentTests.query.filter_by(emailid=email).first()
+    if not studenttests:
+        return False
+    app.logger.info(studenttests.testslist)
+    if testid in studenttests.testslist:
+        return True
+    return False
+
 @app.route('/quiz')
 @login_required
 def quiz():
     # return render_template('index.html')
     if 'role' not in session['user']:
         return "Your account still not activated, Please come here after activation of your account."
+    if not allowed_to_take_test("English Literacy Test"):
+        return redirect(url_for('student'))
     return render_template('index.html')
 
 @app.route('/javascripts/<path:path>')
@@ -634,20 +650,21 @@ def send_video(path):
 def send_stylesheets(path):
     return send_from_directory('static/stylesheets', path)
 
-# @app.route('/checklogin')
-# def checklogin():
-#     myname = "Veda"
-#     emailaddr = session['user']['email']
-#     ss = Response.query.filter_by(emailid=emailaddr).first()
-#     if ss is None:
-#         response = Response(emailid=emailaddr, name=myname)
-#         db.session.add(response)
-#         db.session.commit()
-#     sp=userDetails.query.filter_by(email=emailaddr).first()
-#     if sp is not None:
-#         return render_template('quiz.html')
-#     else:
-#         return render_template('register.html')
+@app.route('/checklogin')
+@login_required
+def checklogin():
+    emailaddr = session['user']['email']
+    myname = emailaddr
+    ss = Response.query.filter_by(emailid=emailaddr).first()
+    if ss is None:
+        response = Response(emailid=emailaddr, name=myname)
+        db.session.add(response)
+        db.session.commit()
+    sp=userDetails.query.filter_by(email=emailaddr).first()
+    if sp is not None:
+        return render_template('quiz.html')
+    else:
+        return render_template('register.html')
 
 @app.route('/savepersonaldata', methods=['POST'])
 def savepersonaldata():
@@ -836,6 +853,7 @@ def getResult():
     return ss
 
 @app.route('/getScore', methods=["GET"])
+@login_required
 def getScore():
     score=0
     q1= Response.query.filter_by(emailid=session['user']['email']).all()
@@ -947,7 +965,7 @@ def studenttests():
             result = Tests.query.filter_by(name=name).first()
             tests = str(result).split("::")
             if result.isHosted():
-                button = "<a href='#' class='btn btn-sm btn-primary'>Attempt Test</a>"
+                button = "<a href='/quiz' class='btn btn-sm btn-primary'>Attempt Test</a>"
             else:
                 button = "<a href='#' class='btn btn-sm btn-warning' disabled>Locked</a>"
             tests.append(button)
