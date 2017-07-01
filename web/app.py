@@ -1,5 +1,6 @@
 from flask import Flask, flash, redirect, render_template, \
-     request, jsonify, url_for, session, send_from_directory
+     request, jsonify, url_for, session, send_from_directory, \
+     make_response
 from flask_sqlalchemy import SQLAlchemy
 from cerberus import Validator
 from sqlalchemy import cast
@@ -23,6 +24,7 @@ import base64
 from flask_mail import Mail, Message
 import requests
 import hashlib
+from flask_csv import send_csv
 
 app = Flask(__name__, static_url_path='')
 mail=Mail(app)
@@ -251,8 +253,8 @@ class Users(db.Model):
 
 class AdminDetails(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(180), unique=True, default="vy@fju.us")
-    password = db.Column(db.String(1000), default="veda1997")
+    email = db.Column(db.String(180), unique=True)
+    password = db.Column(db.String(1000))
 
     def __init__(self, email, password):
         self.email = email
@@ -375,6 +377,21 @@ class Response(db.Model):
     def __init__(self, **kwargs):
         super(Response, self).__init__(**kwargs)
 
+    # def __repr__(self):
+    #     return str({
+    #                 "id":self.id,
+    #                 "name": self.name,
+    #                 "emailid": self.emailid,
+    #                 "pin": self.pin,
+    #                 "testctime": self.testctime,
+    #                 "submittedans": self.submittedans,
+    #                 "responsetime": self.responsetime,
+    #                 "q_score": self.q_score,
+    #                 "q_status": self.q_status,
+    #                 "time": self.time,
+    #                 "currentQuestion": self.currentQuestion,
+    #                 "serialno": self.serialno
+    #                 })
 class Randomize(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user1=db.Column(db.String(120))
@@ -617,24 +634,24 @@ def send_video(path):
 def send_stylesheets(path):
     return send_from_directory('static/stylesheets', path)
 
-@app.route('/checklogin')
-def checklogin():
-    myname = "Veda"
-    emailaddr = "vy@fju.us"
-    ss = Response.query.filter_by(emailid=emailaddr).first()
-    if ss is None:
-        response = Response(emailid=emailaddr, name=myname)
-        db.session.add(response)
-        db.session.commit()
-    sp=userDetails.query.filter_by(email=emailaddr).first()
-    if sp is not None:
-        return render_template('quiz.html')
-    else:
-        return render_template('register.html')
+# @app.route('/checklogin')
+# def checklogin():
+#     myname = "Veda"
+#     emailaddr = session['user']['email']
+#     ss = Response.query.filter_by(emailid=emailaddr).first()
+#     if ss is None:
+#         response = Response(emailid=emailaddr, name=myname)
+#         db.session.add(response)
+#         db.session.commit()
+#     sp=userDetails.query.filter_by(email=emailaddr).first()
+#     if sp is not None:
+#         return render_template('quiz.html')
+#     else:
+#         return render_template('register.html')
 
 @app.route('/savepersonaldata', methods=['POST'])
 def savepersonaldata():
-    userdetails = userDetails(name=request.form['name'],email="vy@fju.us",phno=request.form['phone'],rollno=request.form['rollno'],learningcenter=request.form['learningcenter'])
+    userdetails = userDetails(name=request.form['name'],email=session['user']['email'],phno=request.form['phone'],rollno=request.form['rollno'],learningcenter=request.form['learningcenter'])
     db.session.add(userdetails)
     db.session.commit()
     return redirect(url_for('startquiz'))
@@ -643,7 +660,7 @@ def savepersonaldata():
 def getquizstatus():
     #qbank=QuestionBank()
     # check if candidate is resuming the test
-    r1 = Randomize.query.filter_by(user1="vy@fju.us").all()
+    r1 = Randomize.query.filter_by(user1=session['user']['email']).all()
     #print r1
     #logging.error("random values")
     if r1:
@@ -673,20 +690,20 @@ def getquizstatus():
                                 if key == "questions":
                                     for q in subs[key]:
                                         if not isRandomized:
-                                            r = Randomize(user1 = "vy@fju.us", serialno = q['serialno'], qno=q["id"])
+                                            r = Randomize(user1 = session['user']['email'], serialno = q['serialno'], qno=q["id"])
                                             db.session.add(r)
                                             db.session.commit()
                                         else:
                                             #print q['id']
                                             #logging.error("question id is:")
-                                            r = Randomize.query.filter_by(user1 = "vy@fju.us", qno = q["id"]).all()
-                                        q1 = Response.query.filter_by(emailid="vy@fju.us", currentQuestion=q["id"]).order_by(Response.time.desc()).first()
+                                            r = Randomize.query.filter_by(user1 = session['user']['email'], qno = q["id"]).all()
+                                        q1 = Response.query.filter_by(emailid=session['user']['email'], currentQuestion=q["id"]).order_by(Response.time.desc()).first()
                                         if q1:
                                             q["responseAnswer"]=q1.submittedans
                                             q["responseTime"]=q1.responsetime
                                             q["status"]=q1.q_status
 
-    td = TestDetails.query.filter_by(email="vy@fju.us").first()
+    td = TestDetails.query.filter_by(email=session['user']['email']).first()
     if td:
         if td.testend:
             json_data['quizStatus'] = 'END'
@@ -701,9 +718,9 @@ requests
 @app.route('/testtime', methods=['POST'])
 def testtime():
     duration = 60 * 60
-    td = TestDetails.query.filter_by(email="vy@fju.us").first()
+    td = TestDetails.query.filter_by(email=session['user']['email']).first()
     if td is None:
-        testdetails = TestDetails(email="vy@fju.us",test=True,delays=0.0)
+        testdetails = TestDetails(email=session['user']['email'],test=True,delays=0.0)
         db.session.add(testdetails)
         db.session.commit()
         obj = {u"timeSpent":0, u"timeRemaining":duration, u"quizStatus": u"INPROGRESS"}
@@ -733,7 +750,7 @@ def testtime():
 
 @app.route('/submitanswer', methods=["POST"])
 def submitanswer():
-    td=TestDetails.query.filter_by(email="vy@fju.us").first()
+    td=TestDetails.query.filter_by(email=session['user']['email']).first()
     if td and not td.testend:
         validresponse="false"
         status=""
@@ -741,7 +758,9 @@ def submitanswer():
         q_status=""
         score=0
         type=""
-        vals = json.loads(cgi.escape(request.get_data()))
+        request_data = str(request.get_data(),'utf-8')
+        app.logger.info(request_data)
+        vals = json.loads(cgi.escape(request_data))
         vals = vals['jsonData']
         currentQuestion =vals['id']
         submittedans = vals['responseAnswer']
@@ -754,7 +773,7 @@ def submitanswer():
             q_status="skip"
         
         elif currentQuestion in range(e3_start,e3_end):
-            r=UserAudio.query.filter_by(user="vy@fju.us").first()
+            r=UserAudio.query.filter_by(user=session['user']['email']).first()
             if r :
                 q_status="submitted"
                 status="success"
@@ -784,7 +803,7 @@ def submitanswer():
         # creating json file for error response
         # placing in to the database
         n1=int(currentQuestion)
-        data=Response(serialno=n1,emailid="vy@fju.us",name="Veda",currentQuestion=str(currentQuestion),submittedans=submittedans,responsetime=responsetime,q_status=q_status,q_score=score)
+        data=Response(serialno=n1,emailid=session['user']['email'],name=session['user']['email'],currentQuestion=str(currentQuestion),submittedans=submittedans,responsetime=responsetime,q_status=q_status,q_score=score)
         db.session.add(data)
         db.session.commit()
 
@@ -799,7 +818,7 @@ def submitanswer():
 @app.route('/getResult', methods=["GET"])
 def getResult():
     totalscore = 0
-    q1= Response.query.filter_by(emailid="vy@fju.us").order_by(Response.serialno, Response.time.desc()).all()
+    q1= Response.query.filter_by(emailid=session['user']['email']).order_by(Response.serialno, Response.time.desc()).all()
     questionresponses_dict = {}
     question_records=[]
     totalscore=0
@@ -809,7 +828,7 @@ def getResult():
             if q.currentQuestion != s1 :
                 s1=q.currentQuestion
                 #totalscore=q.responsetime+q.q_score
-                question = {"user":"Veda","submittedans":q.submittedans, "q_score":q.q_score,"currentQuestion":s1,"responsetime":q.responsetime}
+                question = {"user":session['user']['email'],"submittedans":q.submittedans, "q_score":q.q_score,"currentQuestion":s1,"responsetime":q.responsetime}
                 question_records.append(question)
     questionresponses_dict["question"]=question_records
     questionresponses_dict["totalscore"]=totalscore
@@ -819,7 +838,7 @@ def getResult():
 @app.route('/getScore', methods=["GET"])
 def getScore():
     score=0
-    q1= Response.query.filter_by(emailid="vy@fju.us").all()
+    q1= Response.query.filter_by(emailid=session['user']['email']).all()
     for q in q1:
         score=score+1
     template_values = {
@@ -837,7 +856,7 @@ def autosaveEssay():
     ans = vals['draft']
     qattemptedtime = vals['responsetime']
     print(vals)
-    data1 = EssayTypeResponse.query.filter_by(useremailid = "vy@fju.us", qid = qid).first()
+    data1 = EssayTypeResponse.query.filter_by(useremailid = session['user']['email'], qid = qid).first()
     print(qid)
 
     if data1:
@@ -847,7 +866,7 @@ def autosaveEssay():
         db.session.commit()
 
     else:
-        data = EssayTypeResponse(useremailid="vy@fju.us", qid=qid, qattemptedtime=qattemptedtime, ansText = ans)
+        data = EssayTypeResponse(useremailid=session['user']['email'], qid=qid, qattemptedtime=qattemptedtime, ansText = ans)
         db.session.add(data)
         db.session.commit()
 
@@ -863,7 +882,7 @@ def upload_audio():
     try:
         files = request.files.getlist('file')
         if files:
-            useraudio = UserAudio(user="vy@fju.us", blob1=files[0].file.read())
+            useraudio = UserAudio(user=session['user']['email'], blob1=files[0].file.read())
             db.session.add(useraudio)
             db.session.commit()
     except Exception as e:
@@ -879,15 +898,15 @@ def view_audio(link):
 
 @app.route('/endtest', methods=["POST"])
 def endtest():
-    val = json.loads(cgi.escape(request.get_data()))
+    val = json.loads(cgi.escape(str(request.get_data(), 'utf-8')))
     val = val['jsonData']
     print(val)
     testend = val['testend']
     score = val['finalScore']
     spklink = val['spklink']
     print(testend)
-    data1 = TestDetails.query.filter_by(email = "vy@fju.us").first()
-    userdata=userDetails.query.filter_by(email = "vy@fju.us").first()
+    data1 = TestDetails.query.filter_by(email = session['user']['email']).first()
+    userdata=userDetails.query.filter_by(email = session['user']['email']).first()
     learningcenter=userdata.learningcenter    
     if data1:
         data1.testend = testend
@@ -1489,3 +1508,58 @@ def autocomplete():
     query = db.session.query(Users.emailid).filter(Users.emailid.like('%' + str(search) + '%'))
     results = [mv[0] for mv in query.all()]
     return jsonify(matching_results=results)
+
+
+@app.route('/downloadTestResults/<testid>')
+def downloadTestResults(testid):
+    if request.method == 'GET':
+
+        app.logger.info(testid)
+        result = Response.query.all()
+        # app.logger.info(result)
+        # table = [["name","emailid","pin","testctime","submittedans","responsetime","q_score","q_status","time","currentQuestion","serialno"]]
+        # app.logger.info(','.join(table[0]))
+        table = []
+        for entry in result:
+            id = entry.id 
+            name = entry.name 
+            emailid = entry.emailid 
+            pin = entry.pin 
+            testctime = entry.testctime 
+            submittedans = entry.submittedans 
+            responsetime = entry.responsetime 
+            q_score = entry.q_score 
+            q_status = entry.q_status 
+            time = entry.time 
+            currentQuestion = entry.currentQuestion
+            serialno = entry.serialno
+
+            table.append(
+                {
+                    "name":name,
+                    "emailid":emailid,
+                    "pin":pin,
+                    "testctime":testctime,
+                    "submittedans":submittedans,
+                    "responsetime":responsetime,
+                    "q_score":q_score,
+                    "q_status":q_status,
+                    "time":time,
+                    "currentQuestion":currentQuestion,
+                    "serialno":serialno
+                }
+            )
+            # app.logger.info(','.join([name,emailid,pin,testctime,submittedans,responsetime,q_score,q_status,time,currentQuestion,serialno]))
+        return send_csv(table,
+                    "TestResult.csv",
+                    ["name","emailid","pin","testctime","submittedans","responsetime","q_score","q_status","time","currentQuestion","serialno"])
+        # app.logger.info(','.join(row) for row in table)
+        # app.logger.info('\n'.join(','.join(row) for row in table))
+        # table = 'foo,bar,baz\nhai,bai,crai\n'
+        # # table = '\n'.join(','.join(row) for row in table)
+        # response = make_response(table)
+        # cd = 'attachment; filename=TestResults.csv'
+        # response.headers['Content-Disposition'] = cd 
+        # response.mimetype='text/csv'
+
+        # return response
