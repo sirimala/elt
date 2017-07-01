@@ -1493,7 +1493,7 @@ def loadtests():
         app.logger.info(test)
         button = "<a href='/edit' class='btn btn-sm btn-primary'>Edit Test</a>"
         test.append(button)
-        button = "<a href='#' class='btn btn-sm btn-success' disabled>Preview Test</a>"
+        button = "<a href='/quiz' class='btn btn-sm btn-success'>Preview Test</a>"
         test.append(button)
         button = "<a data-toggle='modal' data-target='#NotifyMailResponses' id='notify"+str(count)+"' name='/notify/"+test[0]+"' class='btn btn-sm btn-warning'>Notify</a>"
         test.append(button)
@@ -1526,7 +1526,7 @@ def downloadTestResults(testid):
         result = Response.query.all()
         
         students = getAllStudentDetails()
-        app.logger.info(students)
+        # app.logger.info(students)
         table = []
         for entry in result:
             id = entry.id 
@@ -1548,7 +1548,7 @@ def downloadTestResults(testid):
                 rollno = student['rollno']
             
 
-            app.logger.info(student)
+            # app.logger.info(student)
             table.append(
                 {
                     "name":name,
