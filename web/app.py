@@ -1509,6 +1509,14 @@ def autocomplete():
     results = [mv[0] for mv in query.all()]
     return jsonify(matching_results=results)
 
+def getAllStudentDetails():
+    students = userDetails.query.all()
+    student_table = {}
+    for student in students:
+        if student.email not in student_table:
+            student_table[student.email] = {"name": student.name, "rollno":student.rollno}
+
+    return student_table
 
 @app.route('/downloadTestResults/<testid>')
 def downloadTestResults(testid):
@@ -1516,13 +1524,14 @@ def downloadTestResults(testid):
 
         app.logger.info(testid)
         result = Response.query.all()
-        # app.logger.info(result)
-        # table = [["name","emailid","pin","testctime","submittedans","responsetime","q_score","q_status","time","currentQuestion","serialno"]]
-        # app.logger.info(','.join(table[0]))
+        
+        students = getAllStudentDetails()
+        app.logger.info(students)
         table = []
         for entry in result:
             id = entry.id 
             name = entry.name 
+            rollno = ""
             emailid = entry.emailid 
             pin = entry.pin 
             testctime = entry.testctime 
@@ -1533,12 +1542,18 @@ def downloadTestResults(testid):
             time = entry.time 
             currentQuestion = entry.currentQuestion
             serialno = entry.serialno
+            if emailid in students:
+                student = students[emailid]
+                name = student['name']
+                rollno = student['rollno']
+            
 
+            app.logger.info(student)
             table.append(
                 {
                     "name":name,
+                    "rollno":rollno,
                     "emailid":emailid,
-                    "pin":pin,
                     "testctime":testctime,
                     "submittedans":submittedans,
                     "responsetime":responsetime,
@@ -1552,7 +1567,7 @@ def downloadTestResults(testid):
             # app.logger.info(','.join([name,emailid,pin,testctime,submittedans,responsetime,q_score,q_status,time,currentQuestion,serialno]))
         return send_csv(table,
                     "TestResult.csv",
-                    ["name","emailid","pin","testctime","submittedans","responsetime","q_score","q_status","time","currentQuestion","serialno"])
+                    ["name","rollno","emailid","testctime","submittedans","responsetime","q_score","q_status","time","currentQuestion","serialno"])
         # app.logger.info(','.join(row) for row in table)
         # app.logger.info('\n'.join(','.join(row) for row in table))
         # table = 'foo,bar,baz\nhai,bai,crai\n'
