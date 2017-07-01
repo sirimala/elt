@@ -1,6 +1,6 @@
 from flask import Flask, flash, redirect, render_template, \
      request, jsonify, url_for, session, send_from_directory, \
-     make_response
+     make_response, Response as ress
 from flask_sqlalchemy import SQLAlchemy
 from cerberus import Validator
 from sqlalchemy import cast
@@ -325,6 +325,13 @@ class UserAudio(db.Model):
         self.user = user
         self.blob1 = blob1
 
+class TestAudio(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    blob1 = db.Column(db.LargeBinary)
+
+    def __init__(self, blob1):
+        self.blob1 = blob1
+
 class DataModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     url = db.Column(db.String(180))
@@ -593,14 +600,31 @@ def before_request():
     db.session.modified = True
     app.logger.info(["Request received", app.permanent_session_lifetime])
 
-@app.route('/test')
+@app.route('/test', methods=['GET', 'POST'])
 def test():
-    app.logger.debug('in testing')
-    # app.logger.info('in testing1')
-    # app.logger.info(os.walk(app.static_folder))
-    # list_files(app.static_folder)
-    # return str(dir(db.session.expire))
-    return render_template('quiz.html')
+    if request.method == 'POST':
+        app.logger.debug('in testing')
+        # files = request.files.getlist('file')
+        data = request.files['file'].read()
+        # data = files[0].file.read()
+        # app.logger.info(data)
+        test = TestAudio(data)
+        db.session.add(test)
+        db.session.commit()
+        # test = TestAudio.query.first()
+        return app.response_class(test.blob1, mimetype='application/octet-stream')
+    else:
+        return str(datetime.now())
+        return '''
+    <!doctype html>
+    <title>Upload new File</title>
+    <h1>Upload new File</h1>
+    <form action="/test" method=post enctype=multipart/form-data>
+      <p><input type=file name=file>
+         <input type=submit value=Upload>
+    </form>
+    '''
+     
 
 @app.route("/testmail")
 def testmail():
