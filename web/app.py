@@ -196,6 +196,10 @@ schema_type_mapping = {
 
 e1_start=1;e1_end=100;e2_start=101;e2_end=200;e3_start=201;e3_end=300;
 e4_start=301;e4_end=400;
+
+#create a local timezone (Indian Standard Time)
+IST = pytz.timezone('Asia/Kolkata')
+
 global status
 global errortype
 
@@ -295,9 +299,11 @@ class Tests(db.Model):
         self.time = pytz.utc.localize(datetime.utcnow())
         # self.json = json
     def isHosted(self):
-        today = pytz.utc.localize(datetime.now())
-        app.logger.info([datetime.strptime(self.end_date, '%d-%m-%Y %H:%M'), datetime.now()])
-        return datetime.strptime(self.end_date, '%d-%m-%Y %H:%M').replace(tzinfo=pytz.UTC) < today
+        today = datetime.now(IST)
+        start_date = datetime.strptime(self.start_date, '%d-%m-%Y %H:%M')
+        end_date = datetime.strptime(self.end_date, '%d-%m-%Y %H:%M')
+
+        return IST.localize(start_date) < today < IST.localize(end_date)
 
     def __repr__(self):
         return str(self.name)+"::"+str(self.start_date)+"::"+str(self.end_date)
@@ -1291,8 +1297,11 @@ def validate_name(name):
 
 #Change the the now() to utcnow() and add replace method
 def validate_date(date):
-    today = pytz.utc.localize(datetime.utcnow())
-    return datetime.strptime(date, '%d-%m-%Y %H:%M').replace(tzinfo=pytz.UTC) > today
+    today = datetime.now(IST)
+    date = IST.localize(datetime.strptime(date, '%d-%m-%Y %H:%M'))
+    app.logger.info([date, today])
+
+    return date > today
 
 def validate_file(file_name,data):
     file_report = {}
