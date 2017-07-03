@@ -25,6 +25,7 @@ from flask_mail import Mail, Message
 import requests
 import hashlib
 from flask_csv import send_csv
+import pytz
 
 app = Flask(__name__, static_url_path='')
 mail=Mail(app)
@@ -284,17 +285,17 @@ class Tests(db.Model):
     end_date = db.Column(db.String(80))
     # json = db.Column(db.String(1000))
     creator = db.Column(db.String(180))
-    time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
+    time = db.Column(db.DateTime(), default=pytz.utc.localize(datetime.utcnow), onupdate=pytz.utc.localize(datetime.utcnow))
 
     def __init__(self, name, creator, start_date, end_date):
         self.name = name
         self.creator = creator
         self.start_date = start_date
         self.end_date = end_date
-        self.time = datetime.utcnow()
+        self.time = pytz.utc.localize(datetime.utcnow())
         # self.json = json
     def isHosted(self):
-        today = datetime.now()
+        today = pytz.utc.localize(datetime.now())
         app.logger.info([datetime.strptime(self.end_date, '%d-%m-%Y %H:%M') < today,
             datetime.strptime(self.end_date, '%d-%m-%Y %H:%M'), today
             ])
@@ -711,7 +712,7 @@ def getquizstatus():
             qid_list[int(data.qno)] = data.serialno
         json_data=getQuestionPaper(qid_list)
     else:
-        isRandomized = False
+        isRandomized = True
         json_data=generateQuestionPaper()
     # print json_data;
     # TODO
@@ -1201,7 +1202,10 @@ def setpassword():
 
             return render_template("set_password.html", message=message, status=message_staus)
 
-
+@app.route('/audio', methods=['GET', 'POST'])
+@login_required
+def audio():
+    return render_template("audio.html")
 #==================================================== ADMIN PAGE =====================================================
 # def valid_admin_login(email, password):
 #     result = AdminDetails.query.filter_by(email=email).first()
@@ -1279,7 +1283,7 @@ def validate_name(name):
     return result == None
 
 def validate_date(date):
-    today = datetime.now()
+    today = pytz.utc.localize(datetime.now())
     return datetime.strptime(date, '%d-%m-%Y %H:%M') > today
 
 def validate_file(file_name,data):
