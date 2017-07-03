@@ -8,8 +8,11 @@ server {
     
     charset utf-8;
 
+    sendfile off;
+    
     location /static {
         alias /usr/src/app/static;
+        expires -1;
     }
 
     location / {
@@ -17,6 +20,9 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        uwsgi_read_timeout 600;
+        include uwsgi_params;
+        uwsgi_read_timeout 600s;
+        uwsgi_param HTTPS $https if_not_empty;
     }
+
 }

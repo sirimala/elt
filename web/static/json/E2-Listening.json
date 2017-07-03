@@ -127,6 +127,131 @@
                     ]
                 }
             ]
+        },
+        {
+            "link": "<div class=\"embed-responsive embed-responsive-4by3\"><span>2222222</span><iframe class=\"embed-responsive-item\" src=\"https://www.youtube.com/embed/-eiBdRv_ghI\" frameborder=\"0\" allowfullscreen></iframe></div>",
+            "questions": [
+                {
+                    "question": "The bold decision of Demonetization affects",
+                    "options": [
+                        "~1.4 billion people",
+                        "=1.25 billion people",
+                        "~3.26 million people",
+                        "~2.63 million people"
+                    ],
+                    "id": "1209",
+                    "answer": "0.18-0.25secs",
+                    "practicelinks": [
+                        "http://learnenglishteens.britishcouncil.org/skills/listening-skills-practice",
+                        "http://www.esl-lab.com"
+                    ]
+                },
+                {
+                    "question": "What are the areas which have been identified as strategic benefits of demonetization?",
+                    "options": [
+                        "~Terror funding",
+                        "~Maoist extremism",
+                        "~Unrest in Kashmir",
+                        "=All of the above"
+                    ],
+                    "id": "1210",
+                    "answer": "1.15 -1.20secs",
+                    "practicelinks": [
+                        "http://englishinteractive.net/listening.html",
+                        "http://www.iei.illinois.edu/California/index.html"
+                    ]
+                },
+                {
+                    "question": "The announcement of the demonetization of five hundred rupee and one thousand rupee notes was made ",
+                    "options": [
+                        "~By the President of India in a scheduled, televised address to the nation",
+                        "~By the Prime Minister of India in a scheduled, televised address to the nation",
+                        "=By the Prime Minister of India in an unscheduled, real time, televised address to the nation",
+                        "~By the President of India in an unscheduled, real time, televised address to the nation"
+                    ],
+                    "id": "1211",
+                    "answer": "4.35 -4.40 secs",
+                    "practicelinks": [
+                        "http://www.bbc.co.uk/worldservice/learningenglish/general/sixminute/2014/09/140911_6min_underwater_living.shtml",
+                        "http://esl.about.com/library/listening/bllis_reservation.htm"
+                    ]
+                },
+                {
+                    "question": "Prime Minister Modi’s surgical strike on black money has dealt a body blow to Pakistan’s multi-crore fake Indian Currency network.",
+                    "options": [
+                        "=True",
+                        "~False",
+                        "~Partly true",
+                        "~Not sure"
+                    ],
+                    "id": "1212",
+                    "answer": "2.08 -2.15 secs",
+                    "practicelinks": [
+                        "http://www.bbc.co.uk/worldservice/learningenglish/general/sixminute/2014/09/140918_6min_london_skyline.shtml",
+                        "http://www.bbc.co.uk/worldservice/learningenglish/general/sixminute/"
+                    ]
+                },
+                {
+                    "question": "Money collected from Bihar, Chhattisgarh and Jharkhand, from road contractors and big industrial houses carrying out mining activities is called",
+                    "options": [
+                        "~Penalty",
+                        "~Safety fee",
+                        "=Levy",
+                        "~None of these"
+                    ],
+                    "id": "1213",
+                    "answer": "0.18-0.25secs",
+                    "practicelinks": [
+                        "http://learnenglishteens.britishcouncil.org/skills/listening-skills-practice",
+                        "http://www.esl-lab.com"
+                    ]
+                },
+                {
+                    "question": "Stone pelt-ers in Kashmir are part of the patriotic groups.",
+                    "options": [
+                        "~True",
+                        "=False",
+                        "~Partly true",
+                        "~Not sure"
+                    ],
+                    "id": "1214",
+                    "answer": "1.15 -1.20secs",
+                    "practicelinks": [
+                        "http://englishinteractive.net/listening.html",
+                        "http://www.iei.illinois.edu/California/index.html"
+                    ]
+                },
+                {
+                    "question": "Demonetization has had ______________________ effect on the causes of unrest in Kashmir.",
+                    "options": [
+                        "=A Diminishing",
+                        "~An Increasing",
+                        "~An Elongating",
+                        "~A Prolonged"
+                    ],
+                    "id": "1215",
+                    "answer": "4.35 -4.40 secs",
+                    "practicelinks": [
+                        "http://www.bbc.co.uk/worldservice/learningenglish/general/sixminute/2014/09/140911_6min_underwater_living.shtml",
+                        "http://esl.about.com/library/listening/bllis_reservation.htm"
+                    ]
+                },
+                {
+                    "question": "The change in the frequency of incidents of stone pelting has _______________ the stand of the Central Government that ___________________ is pumping money into Kashmir through various hawala channels",
+                    "options": [
+                        "~Vindicated, Afghanistan",
+                        "~Defended, Nepal",
+                        "~Proven, China",
+                        "=Vindicated, Pakistan"
+                    ],
+                    "id": "1216",
+                    "answer": "2.08 -2.15 secs",
+                    "practicelinks": [
+                        "http://www.bbc.co.uk/worldservice/learningenglish/general/sixminute/2014/09/140918_6min_london_skyline.shtml",
+                        "http://www.bbc.co.uk/worldservice/learningenglish/general/sixminute/"
+                    ]
+                }
+            ]
         }
     ]
 }

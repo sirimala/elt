@@ -194,8 +194,8 @@ schema_type_mapping = {
     'video' :validate_record_template,
 }
 
-e1_start=801;e1_end=809;e2_start=1201;e2_end=1208;e3_start=1601;e3_end=1701;
-e4_start=1701;e4_end=1702;
+e1_start=1;e1_end=100;e2_start=101;e2_end=200;e3_start=201;e3_end=300;
+e4_start=301;e4_end=400;
 global status
 global errortype
 
@@ -285,7 +285,7 @@ class Tests(db.Model):
     end_date = db.Column(db.String(80))
     # json = db.Column(db.String(1000))
     creator = db.Column(db.String(180))
-    time = db.Column(db.DateTime(), default=pytz.utc.localize(datetime.utcnow), onupdate=pytz.utc.localize(datetime.utcnow))
+    time = db.Column(db.DateTime(), default=pytz.utc.localize(datetime.utcnow()), onupdate=pytz.utc.localize(datetime.utcnow()))
 
     def __init__(self, name, creator, start_date, end_date):
         self.name = name
@@ -296,10 +296,8 @@ class Tests(db.Model):
         # self.json = json
     def isHosted(self):
         today = pytz.utc.localize(datetime.now())
-        app.logger.info([datetime.strptime(self.end_date, '%d-%m-%Y %H:%M') < today,
-            datetime.strptime(self.end_date, '%d-%m-%Y %H:%M'), today
-            ])
-        return datetime.strptime(self.end_date, '%d-%m-%Y %H:%M') < today
+        app.logger.info([datetime.strptime(self.end_date, '%d-%m-%Y %H:%M'), datetime.now()])
+        return datetime.strptime(self.end_date, '%d-%m-%Y %H:%M').replace(tzinfo=pytz.UTC) < today
 
     def __repr__(self):
         return str(self.name)+"::"+str(self.start_date)+"::"+str(self.end_date)
@@ -435,17 +433,17 @@ def getQuestionPaper(qid_list):
     i=0;j=0;k=0;l=0;m=0;n=0;p=0;q=0;r=0;s=0;t=0
     for qid in qid_list:
         qid=int(qid)
-        if qid in range(e1_start,e1_end):
+        if qid in list(range(e1_start,e1_end)):
               e1_readjson=json.loads(open(os.path.join(APP_STATIC_JSON,'E1-Reading.json')).read())
               for key in e1_readjson["passageArray"]:
                     for qn in key["questions"]:
                           pid=qn["id"]
                           if int(pid) == qid:
-                                json_temp["section"][1]["subsection"][0]["passage"]=key["passage"]
-                                json_temp["section"][1]["subsection"][0]["questions"].append(qn)
-                                json_temp["section"][1]["subsection"][0]["questions"][m]["serialno"] = qid_list[qid]
+                                json_temp["section"][2]["subsection"][0]["passage"]=key["passage"]
+                                json_temp["section"][2]["subsection"][0]["questions"].append(qn)
+                                json_temp["section"][2]["subsection"][0]["questions"][m]["serialno"] = qid_list[qid]
                                 m +=1
-        if qid in range(e2_start,e2_end):
+        if qid in list(range(e2_start,e2_end)):
               e2_lsnjson=json.loads(open(os.path.join(APP_STATIC_JSON,'E2-Listening.json')).read())
               for key in e2_lsnjson["videoArray"]:
                     for qn in key["questions"]:
@@ -455,22 +453,23 @@ def getQuestionPaper(qid_list):
                                 json_temp["section"][0]["subsection"][0]["questions"].append(qn)
                                 json_temp["section"][0]["subsection"][0]["questions"][n]["serialno"] = qid_list[qid]
                                 n +=1
-        if qid in range(e3_start,e3_end):
+        if qid in list(range(e3_start,e3_end)):
               e3_spkjson=json.loads(open(os.path.join(APP_STATIC_JSON,'E3-Speaking.json')).read())
               for key in e3_spkjson["questions"]:
                     if int(key["id"]) == qid:
-                          json_temp["section"][0]["subsection"][1]["questions"].append(key)
-                          json_temp["section"][0]["subsection"][1]["questions"][p]["serialno"] = qid_list[qid]
+                          json_temp["section"][1]["subsection"][0]["questions"].append(key)
+                          json_temp["section"][1]["subsection"][0]["questions"][p]["serialno"] = qid_list[qid]
                           p += 1
-        if qid in range(e4_start,e4_end):
+        if qid in list(range(e4_start,e4_end)):
               e4_wrtjson=json.loads(open(os.path.join(APP_STATIC_JSON,'E4-Writing.json')).read())
               for key in e4_wrtjson["questions"]:
                     if int(key["id"]) == qid:
-                          json_temp["section"][1]["subsection"][1]["questions"].append(key)
-                          json_temp["section"][1]["subsection"][1]["questions"][q]["serialno"] = qid_list[qid]
+                          json_temp["section"][3]["subsection"][0]["questions"].append(key)
+                          json_temp["section"][3]["subsection"][0]["questions"][q]["serialno"] = qid_list[qid]
                           q += 1
     return json_temp
 
+@app.route("/getquestionpaper")
 def generateQuestionPaper():
     path = 'QP_template.json'
     json_temp=json.loads(open(os.path.join(APP_STATIC_JSON,path)).read())
@@ -489,7 +488,7 @@ def generateQuestionPaper():
                                 #print name
                                 json_subs=json.loads(open(os.path.join(APP_STATIC_JSON,name+".json")).read())
                                 video_list=json_subs["videoArray"]
-                                serialno=range(0,len(video_list))
+                                serialno=list(range(0,len(video_list)))
                                 shuffle(serialno)
                                 subs["link"]=video_list[serialno[0]]["link"]
                                 subs["questions"]=video_list[serialno[0]]["questions"]
@@ -501,16 +500,16 @@ def generateQuestionPaper():
                                 #print name
                                 json_subs=json.loads(open(os.path.join(APP_STATIC_JSON,name+".json")).read())
                                 qns_list=json_subs["questions"];
-                                serialno=range(0,len(qns_list))
+                                serialno=list(range(0,len(qns_list)))
                                 shuffle(serialno)
-                                for no in range(0,cnt):
+                                for no in list(range(0,cnt)):
                                     subs["questions"].append(qns_list[serialno[no]])
                                     subs["questions"][no]["serialno"]=no+1
                             if types == "passage":
                                 #print name
                                 json_subs=json.loads(open(os.path.join(APP_STATIC_JSON,name+".json")).read())
                                 psglist=json_subs["passageArray"]
-                                serialno=range(0,len(psglist))
+                                serialno=list(range(0,len(psglist)))
                                 shuffle(serialno)
                                 subs["questions"]=psglist[serialno[0]]["questions"]
                                 j=0
@@ -522,16 +521,16 @@ def generateQuestionPaper():
                                 #print name
                                 json_subs=json.loads(open(os.path.join(APP_STATIC_JSON,name+".json")).read())
                                 qns_list=json_subs["questions"];
-                                serialno=range(0,len(qns_list))
+                                serialno=list(range(0,len(qns_list)))
                                 shuffle(serialno)
-                                for no in range(0,cnt):
+                                for no in list(range(0,cnt)):
                                     subs["questions"].append(qns_list[serialno[no]])
                                     subs["questions"][no]["serialno"]=no+1
                             if name == "T2-Listening":
                                 #print name
                                 json_subs=json.loads(open(os.path.join(APP_STATIC_JSON,name+".json")).read())
                                 video_list=json_subs["videoArray"]
-                                serialno=range(0,len(video_list))
+                                serialno=list(range(0,len(video_list)))
                                 shuffle(serialno)
                                 subs["link"]=video_list[serialno[0]]["link"]
                                 subs["questions"]=video_list[serialno[0]]["questions"]
@@ -544,7 +543,7 @@ def generateQuestionPaper():
 
 def getAnswer(qid):
     qid=int(qid)
-    if qid in range(e1_start,e1_end):
+    if qid in list(range(e1_start,e1_end)):
         e1_readjson=json.loads(open(os.path.join(APP_STATIC_JSON, 'E1-Reading.json')).read())
         for psg in e1_readjson["passageArray"]:
             for key in psg["questions"]:
@@ -552,7 +551,7 @@ def getAnswer(qid):
                     for op in key["options"]:
                         if op[0] == "=":
                             return op[1:len(op)]
-    if qid in range(e2_start,e2_end):
+    if qid in list(range(e2_start,e2_end)):
         e2_lsnjson=json.loads(open(os.path.join(APP_STATIC_JSON, 'E2-Listening.json')).read())
         for key in e2_lsnjson["videoArray"]:
             for qn in key["questions"]:
@@ -645,7 +644,10 @@ def index():
 def allowed_to_take_test(testid=""):
     email = session['user']['email']
     studenttests = StudentTests.query.filter_by(emailid=email).first()
+    if session["user"]["role"]=="admin":
+        return True
     if not studenttests:
+        app.logger.info(studenttests)
         return False
     app.logger.info(studenttests.testslist)
     if testid in studenttests.testslist:
@@ -659,7 +661,8 @@ def quiz():
     if 'role' not in session['user']:
         return "Your account still not activated, Please come here after activation of your account."
     if not allowed_to_take_test("English Literacy Test"):
-        return redirect(url_for('student'))
+        return redirect(url_for(session["user"]["role"]))
+    app.logger.info("I am not admin")
     return render_template('index.html')
 
 @app.route('/javascripts/<path:path>')
@@ -693,9 +696,11 @@ def checklogin():
 
 @app.route('/savepersonaldata', methods=['POST'])
 def savepersonaldata():
-    userdetails = userDetails(name=request.form['name'],email=session['user']['email'],phno=request.form['phone'],rollno=request.form['rollno'],learningcenter=request.form['learningcenter'])
-    db.session.add(userdetails)
-    db.session.commit()
+    userdetails = userDetails.query.filter_by(email=session['user']['email']).first()
+    if not userdetails:
+        userdetails = userDetails(name=request.form['name'],email=session['user']['email'],phno=request.form['phone'],rollno=request.form['rollno'],learningcenter=request.form['learningcenter'])
+        db.session.add(userdetails)
+        db.session.commit()
     return redirect(url_for('startquiz'))
 
 @app.route('/getquizstatus', methods=['POST'])
@@ -712,7 +717,7 @@ def getquizstatus():
             qid_list[int(data.qno)] = data.serialno
         json_data=getQuestionPaper(qid_list)
     else:
-        isRandomized = True
+        isRandomized = False
         json_data=generateQuestionPaper()
     # print json_data;
     # TODO
@@ -738,6 +743,7 @@ def getquizstatus():
                                         else:
                                             #print q['id']
                                             #logging.error("question id is:")
+                                            app.logger.info(q["id"])
                                             r = Randomize.query.filter_by(user1 = session['user']['email'], qno = q["id"]).all()
                                         q1 = Response.query.filter_by(emailid=session['user']['email'], currentQuestion=q["id"]).order_by(Response.time.desc()).first()
                                         if q1:
@@ -814,7 +820,7 @@ def submitanswer():
             validresponse="true"
             q_status="skip"
         
-        elif currentQuestion in range(e3_start,e3_end):
+        elif currentQuestion in list(range(e3_start,e3_end)):
             r=UserAudio.query.filter_by(user=session['user']['email']).first()
             if r :
                 q_status="submitted"
@@ -824,7 +830,7 @@ def submitanswer():
                 q_status="submitted"
                 status="success"
                 validresponse="true"
-        elif currentQuestion in range(e4_start,e4_end):
+        elif currentQuestion in list(range(e4_start,e4_end)):
             q_status="submitted"
             status="success"
             validresponse="true"
@@ -892,7 +898,8 @@ def getScore():
 
 @app.route('/autosaveEssay', methods=["POST"])
 def autosaveEssay():
-    vals = json.loads(cgi.escape(request.get_data()))
+    data = request.get_data()
+    vals = json.loads(data.decode("utf-8"))
     vals = vals['jsonData']
     qid = vals['currentQuestion']
     print(vals)
@@ -1282,9 +1289,10 @@ def validate_name(name):
     result = Tests.query.filter_by(name=name).first()
     return result == None
 
+#Change the the now() to utcnow() and add replace method
 def validate_date(date):
-    today = pytz.utc.localize(datetime.now())
-    return datetime.strptime(date, '%d-%m-%Y %H:%M') > today
+    today = pytz.utc.localize(datetime.utcnow())
+    return datetime.strptime(date, '%d-%m-%Y %H:%M').replace(tzinfo=pytz.UTC) > today
 
 def validate_file(file_name,data):
     file_report = {}
@@ -1624,3 +1632,12 @@ def downloadTestResults(testid):
         # response.mimetype='text/csv'
 
         # return response
+
+@app.route('/uploadqp', methods=['POST'])
+@admin_login_required
+def uploadqp():
+    if request.method == "GET":
+        return render_template("uploadqp.html")
+    # if request.method == "POST":
+
+

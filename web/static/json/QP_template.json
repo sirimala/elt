@@ -1,8 +1,8 @@
 {
-    "name": "General Competency Test",
+    "name": "General Competency Tes",
     "section": [
         {
-            "name": "Listening and Speaking Section",
+            "name": "Listening Section",
             "subsection": [
                 {
                     "name": "E2-Listening",
@@ -10,7 +10,12 @@
                     "questions": [],
                     "note": "Listen to the video given and answer the following questions:",
                     "types": "video"
-                },
+                }
+            ]
+        },
+        {
+            "name": "Speaking Section",
+            "subsection": [
                 {
                     "name": "E3-Speaking",
                     "count": "1",
@@ -21,7 +26,7 @@
             ]
         },
         {
-            "name": "Reading and Writing Section",
+            "name": "Reading Section",
             "subsection": [
                 {
                     "name": "E1-Reading",
@@ -29,7 +34,12 @@
                     "questions": [],
                     "note": "Read the following passage and answer the questions",
                     "types": "passage"
-                },
+                }
+            ]
+        },
+        {
+            "name": "Writing Section",
+            "subsection": [
                 {
                     "name": "E4-Writing",
                     "count": "1",
@@ -40,4 +50,5 @@
             ]
         }
     ]
+
 }

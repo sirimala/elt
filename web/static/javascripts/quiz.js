@@ -438,7 +438,7 @@ var questionView = {
 			var essayText = "";
 			if(quizModel.question.responseAnswer)
 				essayText = quizModel.question.responseAnswer;
-
+			console.log(essayText);
 			// create text area
 			var words = document.createElement("div");
 			words.setAttribute("id", "words");
