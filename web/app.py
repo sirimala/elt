@@ -475,7 +475,6 @@ def getQuestionPaper(qid_list):
                           q += 1
     return json_temp
 
-@app.route("/getquestionpaper")
 def generateQuestionPaper():
     path = 'QP_template.json'
     json_temp=json.loads(open(os.path.join(APP_STATIC_JSON,path)).read())
@@ -604,7 +603,7 @@ def before_request():
     db.session.permanent = True
     app.permanent_session_lifetime = timedelta(minutes=15)
     db.session.modified = True
-    app.logger.info(["Request received", app.permanent_session_lifetime])
+    app.logger.info(["Session expire time extentended to ", datetime.now(IST) + app.permanent_session_lifetime])
 
 @app.route('/test', methods=['GET', 'POST'])
 def test():
@@ -666,10 +665,10 @@ def quiz():
     # return render_template('index.html')
     if 'role' not in session['user']:
         return "Your account still not activated, Please come here after activation of your account."
-    if not allowed_to_take_test("English Literacy Test"):
-        return redirect(url_for(session["user"]["role"]))
+    if allowed_to_take_test("English Literacy Test"):
+        return render_template('index.html')
     app.logger.info("I am not admin")
-    return render_template('index.html')
+    return redirect(url_for(session["user"]["role"]))
 
 @app.route('/javascripts/<path:path>')
 def send_javascripts(path):
@@ -869,10 +868,9 @@ def submitanswer():
     ss=json.dumps(obj)
     return ss
 
-@app.route('/getResult', methods=["GET"])
-def getResult():
+def getResultOfStudent(email):
     totalscore = 0
-    q1= Response.query.filter_by(emailid=session['user']['email']).order_by(Response.serialno, Response.time.desc()).all()
+    q1= Response.query.filter_by(emailid=email).order_by(Response.serialno, Response.time.desc()).all()
     questionresponses_dict = {}
     question_records=[]
     totalscore=0
@@ -889,11 +887,36 @@ def getResult():
     ss=json.dumps(questionresponses_dict)
     return ss
 
-@app.route('/getScore', methods=["GET"])
+@app.route('/getResult', methods=["GET", "POST"])
 @login_required
+def getResult():
+    app.logger.info("Im in get result")
+    if request.method=="POST":
+        email = request.form['emailid']
+        return getResultOfStudent(email)
+        app.logger.info(["post", email])
+    
+    if request.method == "GET":
+        app.logger.info(["get", email])
+        email = session["user"]['email']
+        return getResultOfStudent(email)
+
+
+@app.route('/getstudentscore/<email>', methods=["GET"])
+@admin_login_required
+def getstudentscore(email):
+    return render_template('studentscore.html', email=email)
+
+@app.route('/viewresults', methods=["GET"])
+@admin_login_required
+def viewresults():
+    return render_template("testresult.html")
+
+@app.route('/getScore', methods=["GET"])
+@admin_login_required
 def getScore():
     score=0
-    q1= Response.query.filter_by(emailid=session['user']['email']).all()
+    q1= Response.query.filter_by(emailid=session["user"]['email']).all()
     for q in q1:
         score=score+1
     template_values = {
@@ -1479,7 +1502,7 @@ def edit():
         app.logger.info('%s added %s to %s' %(admin,session["students"],testID))
         return render_template("add_students.html")
 
-@app.route('/getStudentsList', methods=["GET"])
+@app.route('/getStudentsList/<test>', methods=["GET"])
 @admin_login_required
 def getStudentsList(test):
     # test = session["TestID"]
@@ -1572,14 +1595,15 @@ def autocomplete():
     results = [mv[0] for mv in query.all()]
     return jsonify(matching_results=results)
 
+@app.route('/getAllStudentDetails', methods=['GET'])
+@admin_login_required
 def getAllStudentDetails():
     students = userDetails.query.all()
     student_table = {}
     for student in students:
         if student.email not in student_table:
             student_table[student.email] = {"name": student.name, "rollno":student.rollno}
-
-    return student_table
+    return json.dumps(student_table)
 
 @app.route('/downloadTestResults/<testid>')
 def downloadTestResults(testid):
@@ -1588,7 +1612,7 @@ def downloadTestResults(testid):
         app.logger.info(testid)
         result = Response.query.all()
         
-        students = getAllStudentDetails()
+        students = json.loads(getAllStudentDetails())
         # app.logger.info(students)
         table = []
         for entry in result:

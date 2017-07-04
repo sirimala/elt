@@ -1,24 +1,69 @@
-<!DOCTYPE html>
+{%extends "base.html"%}
+{%block title%}View Results{%endblock%}
+{%block script%}
+<script type="text/javascript">
+	function getResponses() {
+		$.ajax({
+			type: 'get',
+		    url: '/getAllStudentDetails',
+		    dataType:'json',
+		    success: function (data) {
+		    	// data=JSON.parse(data);
+		    	var str="<table class='table table-bordered'><trth><td><b>Student Email Address</b></td><td><b>Student Name</b></td><td><b>Roll Number</b></td></th>";
+		    	console.log(data);
+		    	$.each(data, function(key,valueObj){
+		    		str=str+"<tr>";
+				    str=str+"<td><a href='/getstudentscore/"+key+"'>"+key+"</a></td>";
+				    str=str+"<td>"+valueObj["name"]+"</td>";
+				    str=str+"<td>"+valueObj["rollno"]+"</td>";
+				    str=str+"</tr>";
+				});
+		    	$("#ch1").replaceWith(str);
+		    }
+		});
+	}
+	$(document).ready(function(){
+		getResponses();
+	});
+</script>
+{%endblock%}
+{%block body%}
+	<div class="container">
+		<div class="row">
+			<div class="col-md-9 text-left">			
+				<h3>Test Results (English Comprehension Test)</h3><br>
+			</div>
+			<div class="col-md-3 text-right" >
+				<a href="/downloadTestResults/elt" class="btn btn-primary" style="margin-top:15px">Download as CSV</a>
+			</div>
+		</div>
+		<div class="row">
+			<div id="ch1"></div>
+		</div>
+	</div>
+{%endblock%}
+
+<!-- <!DOCTYPE html>
 {% autoescape true %}
 <meta charset="utf-8">
 <html lang="en">
 <head>
-	<!-- Latest compiled and minified CSS -->
+	Latest compiled and minified CSS
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
 
-	<!-- Optional theme -->
+	Optional theme
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
 
-	<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+	jQuery (necessary for Bootstrap's JavaScript plugins)
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-	<!-- Latest compiled and minified JavaScript -->
+	Latest compiled and minified JavaScript
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 	<script type="text/javascript">
-
-		function showresult() {
+		f
+		function showresult(email) {
 			$.ajax({
 			    type: 'get',
-			    url: '/getResult',
+			    url: '/getResult/'+email,
 			    dataType:'json',
 			    success: function (data) {
 			    	data=JSON.stringify(data);
@@ -27,27 +72,27 @@
 			    	data=JSON.parse(data);
 			    	console.log("hello");
 					//console.log(data.question[0].q_score);
-					var str="<table class=\"table table-bordered\">  <tr><td align=\"center\">QUSETION NUMBER</td><td align=\"center\">SCORE </td> <td align=\"center\">SUBMITTED ANSWER</td><td align=\"center\">TIME TAKEN</td></tr>";
+					var str="<table class='table table-bordered'>  <tr><td align='center'>QUSETION NUMBER</td><td align='center'>SCORE </td> <td align='left'>SUBMITTED ANSWER</td><td align='center'>TIME TAKEN</td></tr>";
 					var totalscore=0;
 					for(var i=0;i<data.question.length;i++){
 						if(data.question[i].q_score==1) {
-							str=str+"<tr class=\"success\">";
+							str=str+"<tr class='success'>";
 							totalscore=totalscore+data.question[i].q_score;
 						} else {
 							if(data.question[i].submittedans!="skip")
-								str=str+"<tr class=\"danger\">";
+								str=str+"<tr class='danger'>";
 							else
 								str=str+"<tr>";
 						}
-						str=str+"<td align=\"center\">"+data.question[i].currentQuestion+"</td>";
-						str=str+"<td align=\"center\">"+data.question[i].q_score+"</td>";
-						str=str+"<td align=\"center\">"+data.question[i].submittedans+"</td>";
+						str=str+"<td align='center'>"+data.question[i].currentQuestion+"</td>";
+						str=str+"<td align='center'>"+data.question[i].q_score+"</td>";
+						str=str+"<td align='center'>"+data.question[i].submittedans+"</td>";
 						if(data.question[i].responsetime!=null)
-							str=str+"<td align=\"center\">"+data.question[i].responsetime.toFixed(2)+"</td></tr>";
+							str=str+"<td align='center'>"+data.question[i].responsetime.toFixed(2)+"</td></tr>";
 						else
-							str=str+"<td align=\"center\">"+data.question[i].responsetime+"</td></tr>";
+							str=str+"<td align='center'>"+data.question[i].responsetime+"</td></tr>";
 					}
-					str=str+"<tr><td align=\"center\">Total Score=</td><td align=\"center\">"+totalscore+"</td></tr>";
+					str=str+"<tr><td align='center'>Total Score</td><td align='center'>"+totalscore+"</td></tr>";
 					str=str+"</table>";
 					$("#ch1").replaceWith(str);
 			    },
@@ -58,8 +103,8 @@
 		}
 	</script>
 </head>
-<body onload="showresult()">
+<body onload="getResponses()">
 	<div id="ch1"></div>
 </body>
 </html>
-{% endautoescape %}
+{% endautoescape %} -->

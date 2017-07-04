@@ -714,8 +714,9 @@ var resultView = {
 				totalScore += value.q_score;
 				count +=1;
 			});
+
 			
-			this.questionNote.html('<p class="lead">Your total score is: ' + totalScore + '</p>');
+			this.questionNote.html('<p class="lead">Your total score is: ' + totalScore + '</p><a href="/" class="btn btn-sm btn-primary">Back to Dashboard</a>');
 			//this.questionPane.hide();
 			this.navBar.hide();
 			this.finalScore = totalScore;
