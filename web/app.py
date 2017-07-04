@@ -26,6 +26,8 @@ import requests
 import hashlib
 from flask_csv import send_csv
 import pytz
+import io
+import csv
 
 app = Flask(__name__, static_url_path='')
 mail=Mail(app)
@@ -380,7 +382,7 @@ class Response(db.Model):
     name = db.Column(db.String(80))
     emailid = db.Column(db.String(180))
     pin = db.Column(db.String(80))
-    testctime = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
+    testctime = db.Column(db.DateTime(), default=datetime.utcnow)
     submittedans = db.Column(db.Text)
     responsetime = db.Column(db.Float)
     q_score = db.Column(db.Integer)
@@ -1609,12 +1611,13 @@ def getAllStudentDetails():
 def downloadTestResults(testid):
     if request.method == 'GET':
 
-        app.logger.info(testid)
+        app.logger.info(["Requested result for test with id ",testid])
         result = Response.query.all()
         
         students = json.loads(getAllStudentDetails())
+        questions = ""
         # app.logger.info(students)
-        table = []
+        table = {}
         for entry in result:
             id = entry.id 
             name = entry.name 
@@ -1633,38 +1636,82 @@ def downloadTestResults(testid):
                 student = students[emailid]
                 name = student['name']
                 rollno = student['rollno']
-            
 
-            # app.logger.info(student)
-            table.append(
-                {
+
+            if rollno not in table:
+                table[rollno] = {
                     "name":name,
                     "rollno":rollno,
                     "emailid":emailid,
                     "testctime":testctime,
-                    "submittedans":submittedans,
-                    "responsetime":responsetime,
-                    "q_score":q_score,
-                    "q_status":q_status,
-                    "time":time,
-                    "currentQuestion":currentQuestion,
-                    "serialno":serialno
+                    "count": 1
                 }
-            )
-            # app.logger.info(','.join([name,emailid,pin,testctime,submittedans,responsetime,q_score,q_status,time,currentQuestion,serialno]))
-        return send_csv(table,
-                    "TestResult.csv",
-                    ["name","rollno","emailid","testctime","submittedans","responsetime","q_score","q_status","time","currentQuestion","serialno"])
-        # app.logger.info(','.join(row) for row in table)
-        # app.logger.info('\n'.join(','.join(row) for row in table))
-        # table = 'foo,bar,baz\nhai,bai,crai\n'
-        # # table = '\n'.join(','.join(row) for row in table)
-        # response = make_response(table)
-        # cd = 'attachment; filename=TestResults.csv'
-        # response.headers['Content-Disposition'] = cd 
-        # response.mimetype='text/csv'
 
-        # return response
+            if currentQuestion is None:
+                continue
+            
+            table[rollno].update({
+                            "Question_"+str(table[rollno]['count'])+"_Submittedans":submittedans,
+                            "Question_"+str(table[rollno]['count'])+"_Responsetime":responsetime,
+                            "Question_"+str(table[rollno]['count'])+"_Score":q_score,
+                            "Question_"+str(table[rollno]['count'])+"_Status":q_status,
+                            "Question_"+str(table[rollno]['count'])+"_Time":time,
+                            "Question_"+str(table[rollno]['count'])+"":currentQuestion,
+                        })
+            table[rollno]['count'] += 1
+
+        data = table.values()
+        csvList = []
+        header = [
+                    "name",
+                    "rollno",
+                    "emailid",
+                    "testctime",
+                ]
+        # app.logger.info(list(data)[0])
+        Questions_count = int((len(list(data)[0])-5)/6)
+        # app.logger.info(["number is ", Questions_count])
+        # return ""
+        for i in range(1, Questions_count + 1):
+            # app.logger.info("hi ra --> Question"+ str(i))
+            header.extend(
+                    [
+                        "Question_"+str(i)+"",
+                        "Question_"+str(i)+"_Score",
+                        "Question_"+str(i)+"_Submittedans",
+                        "Question_"+str(i)+"_Responsetime",
+                        "Question_"+str(i)+"_Status",
+                        "Question_"+str(i)+"_Time"
+                    ]
+                )
+        csvList.append(header)
+
+        for csv_line in data:
+            # app.logger.info(csv_line)
+            row = [csv_line["name"],
+                    csv_line["rollno"],
+                    csv_line["emailid"],
+                    csv_line["testctime"]
+                    ]
+            for i in range(1, Questions_count + 1):
+                row.extend(
+                        [
+                            csv_line["Question_"+str(i)+""],                          
+                            csv_line["Question_"+str(i)+"_Score"],
+                            csv_line["Question_"+str(i)+"_Submittedans"],
+                            csv_line["Question_"+str(i)+"_Responsetime"],
+                            csv_line["Question_"+str(i)+"_Status"],
+                            csv_line["Question_"+str(i)+"_Time"],
+                        ]
+                    )
+            csvList.append(row)
+        si = io.StringIO()
+        cw = csv.writer(si)
+        cw.writerows(csvList)
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = "attachment; filename=English Literacy Test.csv"
+        output.headers["Content-type"] = "text/csv"
+        return output
 
 @app.route('/uploadqp', methods=['POST'])
 @admin_login_required
