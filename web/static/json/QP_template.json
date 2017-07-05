@@ -6,7 +6,7 @@
             "subsection": [
                 {
                     "name": "E2-Listening",
-                    "count": "1",
+                    "count": "6",
                     "questions": [],
                     "note": "Listen to the video given and answer the following questions:",
                     "types": "video"
@@ -30,7 +30,7 @@
             "subsection": [
                 {
                     "name": "E1-Reading",
-                    "count": "1",
+                    "count": "6",
                     "questions": [],
                     "note": "Read the following passage and answer the questions",
                     "types": "passage"

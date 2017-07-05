@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+	</head>
+ 	<body>
+ 		<div id="recordercontainer">
+	 		<div class="container"> 
+		 		<div> 
+			 		<h3>Record: </h3>
+			 		<hr> 
+			 		<button class="btn btn-primary" id="record">Record</button>
+			 		<button class="btn btn-primary" id="stop" disabled>Stop</button>
+		 		</div>
+		 		<div data-type="wav">
+			 		<h3>Recorded Audio: </h3>
+			 		<div id="recorded"></div>
+		 		</div>
+		 		<div data-type="wav">
+			 		<h3>Save Audio: </h3>
+			 		<button class="btn btn-primary" id="save">Save</button>
+			 		<span id="message"></span>
+		 		</div>
+	 		</div>
+ 		</div>
+ 		<script type="text/javascript">
+ 			// $(document).ready(function(){
+ 			// 	$.get('/getrecorder', function(data){
+	 		// 		$("#recordercontainer").html(data);
+	 		// 	});
+ 			// })
+
+ 			$(document).ready(function() {
+			    function createAudioElement(blobURL) {
+			        const audioEl = document.createElement("audio");
+			        audioEl.controls = true;
+			        const sourceEl = document.createElement("source");
+			        sourceEl.src = blobURL;
+			        sourceEl.type = "audio/webm";
+			        audioEl.appendChild(sourceEl);
+			        $("#recorded").html(audioEl);
+			    }
+			    var blobkey = ""
+			    navigator.mediaDevices.getUserMedia({
+			        audio: true
+			    }).then(stream => {
+			        const chunks = [];
+			        const recorder = new MediaRecorder(stream);
+			        recorder.ondataavailable = e => {
+			            chunks.push(e.data);
+			            if (recorder.state == "inactive") {
+			                const blob = new Blob(chunks, {
+			                    type: "audio/webm"
+			                });
+			                createAudioElement(URL.createObjectURL(blob));
+			                blobkey = blob;
+			            }
+			        }
+			        $("#record").click(function() {
+			        	$("#message").text("");
+			            this.innerHTML = "Recording...";
+			            this.disabled = true;
+			            while(chunks.length){
+			            	chunks.pop();
+			            }
+			            recorder.start(1000);
+			            $("#stop").prop("disabled", false);
+			        });
+			        $("#stop").click(function() {
+			            $("#record").html("Record");
+			            $("#record").prop("disabled", false);
+			            recorder.stop();
+			        });
+			        $("#save").click(function() {
+			        	
+			            // console.log(blobkey.type);
+			            var formData = new FormData();
+					      formData.append('file', blobkey);
+
+					      $.ajax({
+					        url: "/test",
+					        type: 'POST',
+					        data: formData,
+					        contentType: false,
+					        processData: false,
+					        success: function(url) {
+					        	console.log("Success occured");
+					        	$("#message").text("Audio upload success");
+				        		// $("audio").attr("src", 'https://ia802508.us.archive.org/5/items/testmp3testfile/mpthreetest.mp3');
+				        		$("audio").attr("src",'data:audio/webm;base64,'+url);
+					          // console.log(url);
+
+					        },
+					        error: function(msg){
+					        	$("#message").text("Audio upload failed");
+
+					        	console.log("Error occured");
+
+					        	// console.log(msg);
+					        }	
+					      });
+			        });
+			        setTimeout(() => {
+			            recorder.stop();
+			        }, 300000)
+			    }).catch(console.error);
+			});
+	</script>
+ 	</body>
+</html>

@@ -619,7 +619,10 @@ def test():
         db.session.add(test)
         db.session.commit()
         # test = TestAudio.query.first()
-        return app.response_class(test.blob1, mimetype='application/octet-stream')
+        # app.logger.info([type(test.blob1), dir(test.blob1)])
+        # return test.blob1
+        return app.response_class(base64.b64encode(test.blob1), mimetype="audio/webm")
+        # return app.response_class(test.blob1, mimetype='application/octet-stream')
     else:
         return str(datetime.now())
         return '''
@@ -652,6 +655,10 @@ def allowed_to_take_test(testid=""):
     email = session['user']['email']
     studenttests = StudentTests.query.filter_by(emailid=email).first()
     if session["user"]["role"]=="admin":
+        Response.query.filter_by(emailid=session["user"]['email']).delete()
+        db.session.commit()
+        TestDetails.query.filter_by(email=session["user"]['email']).delete()
+        db.session.commit()
         return True
     if not studenttests:
         app.logger.info(studenttests)
@@ -668,7 +675,11 @@ def quiz():
     if 'role' not in session['user']:
         return "Your account still not activated, Please come here after activation of your account."
     if allowed_to_take_test("English Literacy Test"):
-        return render_template('index.html')
+        # return render_template('index.html')
+        if len(TestDetails.query.filter_by(email=session["user"]['email']).all()) != 0:
+            return redirect("/checklogin")
+        else:
+            return render_template('index.html')
     app.logger.info("I am not admin")
     return redirect(url_for(session["user"]["role"]))
 
@@ -676,6 +687,16 @@ def quiz():
 def send_javascripts(path):
     app.logger.info("seeking for "+path)
     return send_from_directory('static/javascripts', path)
+
+@app.route('/src/<path:path>')
+def send_src(path):
+    app.logger.info("seeking for "+path)
+    return send_from_directory('static/src', path)
+
+@app.route('/js/<path:path>')
+def send_js(path):
+    app.logger.info("seeking for "+path)
+    return send_from_directory('static/js', path)
 
 @app.route('/video/<path:path>')
 def send_video(path):
@@ -691,10 +712,9 @@ def checklogin():
     emailaddr = session['user']['email']
     myname = emailaddr
     ss = Response.query.filter_by(emailid=emailaddr).first()
-    if ss is None:
-        response = Response(emailid=emailaddr, name=myname)
-        db.session.add(response)
-        db.session.commit()
+    response = Response(emailid=emailaddr, name=myname)
+    db.session.add(response)
+    db.session.commit()
     sp=userDetails.query.filter_by(email=emailaddr).first()
     if sp is not None:
         return render_template('quiz.html')
@@ -899,7 +919,6 @@ def getResult():
         app.logger.info(["post", email])
     
     if request.method == "GET":
-        app.logger.info(["get", email])
         email = session["user"]['email']
         return getResultOfStudent(email)
 
@@ -1028,7 +1047,15 @@ def studenttests():
             result = Tests.query.filter_by(name=name).first()
             tests = str(result).split("::")
             if result.isHosted():
-                button = "<a href='/quiz' class='btn btn-sm btn-primary'>Attempt Test</a>"
+                td = TestDetails.query.filter_by(email=emailid).first()
+                if td:
+                    if td.testend:
+                        button = "<a href='/quiz' class='btn btn-sm btn-default'>Your Score: "+str(td.score)+"</a>"
+                    else:
+                        button = "<a href='/quiz' class='btn btn-sm btn-warning'>In Progress!</a>"
+                else:
+                    button = "<a href='/quiz' class='btn btn-sm btn-primary'>Attempt Test</a>"
+
             else:
                 button = "<a href='#' class='btn btn-sm btn-warning' disabled>Locked</a>"
             tests.append(button)
@@ -1345,6 +1372,13 @@ def validate_file(file_name,data):
     else:
         file_report["isValid"] = 'Invalid Filename or Extension.'
     return file_report
+
+@app.route('/uninvite/<email>', methods=["GET"])
+@admin_login_required
+def uninvite(email):
+    result = StudentTests.query.filter_by(emailid=email).delete()
+    db.session.commit()
+    return redirect(url_for('edit'))
 
 def save_file(folder_name,file_name,data):
     filename = secure_filename(file_name)
@@ -1713,11 +1747,16 @@ def downloadTestResults(testid):
         output.headers["Content-type"] = "text/csv"
         return output
 
-@app.route('/uploadqp', methods=['POST'])
-@admin_login_required
-def uploadqp():
+@app.route('/showrecorder', methods=['GET'])
+def showrecorder():
     if request.method == "GET":
-        return render_template("uploadqp.html")
+        return render_template('recorder.html')
+
+@app.route('/getrecorder', methods=['GET'])
+def getrecorder():
+    if request.method == "GET":
+        return '<div class="container"> <div> <h3>Record: </h3> <hr> <button class="btn btn-primary" id="record">Record</button> <button class="btn btn-primary" id="stop" disabled>Stop</button> </div> <div data-type="wav"> <h3>Recorded Audio: </h3> <div id="recorded"></div> </div> <div data-type="wav"> <h3>Save Audio: </h3> <button class="btn btn-primary" id="save">Save</button> </div> </div>'
+
     # if request.method == "POST":
 
 

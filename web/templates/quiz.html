@@ -83,6 +83,52 @@
 		$("#close").click(function(){
 					
 		});
+
+		$(document).ready(function() {
+		    function createAudioElement(blobURL) {
+		        const audioEl = document.createElement("audio");
+		        audioEl.controls = true;
+		        const sourceEl = document.createElement("source");
+		        sourceEl.src = blobURL;
+		        sourceEl.type = "audio/webm";
+		        audioEl.appendChild(sourceEl);
+		        $("#recorded").html(audioEl);
+		    }
+		    var blobkey = ""
+		    navigator.mediaDevices.getUserMedia({
+		        audio: true
+		    }).then(stream => {
+		        const chunks = [];
+		        const recorder = new MediaRecorder(stream);
+		        recorder.ondataavailable = e => {
+		            chunks.push(e.data);
+		            if (recorder.state == "inactive") {
+		                const blob = new Blob(chunks, {
+		                    type: "audio/webm"
+		                });
+		                createAudioElement(URL.createObjectURL(blob));
+		                blobkey = blob;
+		            }
+		        }
+		        $("#record").click(function() {
+		            this.innerHTML = "Recording...";
+		            this.disabled = true;
+		            recorder.start(1000);
+		            $("#stop").prop("disabled", false);
+		        });
+		        $("#stop").click(function() {
+		            $("#record").html("Record");
+		            $("#record").prop("disabled", false);
+		            recorder.stop();
+		        });
+		        $("#save").click(function() {
+		            console.log(blobkey);
+		        });
+		        setTimeout(() => {
+		            recorder.stop();
+		        }, 300000)
+		    }).catch(console.error);
+		});
 	</script>
 </body>
 </html>
