@@ -4,7 +4,7 @@ var quizModel = {
 		init : function(data) {
 			// create questions array from the JSON data
 			this.createQuizModel(data);
-			console.log(data)
+			// console.log(data)
 		},
 
 		// parse JSON data and create an array of questions
@@ -65,7 +65,7 @@ var quizModel = {
 			$.each(this.questions, function(index, value) {
 				if(!value.status)
 					return false;
-				q = index;
+				q = index-1;
 			});
 			this.questionIndex = q;
 			//console.log("question index is:" + this.questionIndex)
@@ -363,6 +363,8 @@ var questionView = {
 					q.responseTime = questionView.getResponseTime();
 					octopus.submitAnswer();
 				} else {
+					console.log(selectedAnswer);
+
 					alert("Select a choice to submit answer.");
 				}
 			});
@@ -409,12 +411,10 @@ var questionView = {
 			}
 			if (q.subsections.types == "record")
 			{
-				this.questionPane.append('<div><label>Please Watch the instructions:</label><br><iframe width=\"560\" height=\"315\" src=\"static/Intro-SpeakingSection.mp4\" frameborder=\"0\" allowfullscreen></iframe></div><br>');
-				this.questionPane.append('<div><label>Please Click on URL Link: &nbsp;</label><a href="http://vocaroo.com/" target="_blank">http://vocaroo.com/</a></div><br>');
-				this.questionPane.append('<div><label>Audio Link: </label><input type="text" id="audiolink"></div>');
-				this.questionPane.append('<br><label><input type="radio" name="optionsRadios" id="optionsRadios1" value="skip"> Skip Question</label>');
-				//startView.wami1.show();
-				//this.displayRecording();
+				this.questionPane.append('<div><label>Please Watch the instructions:</label><br><iframe width=\"560\" height=\"315\" src=\"/showrecorder\" frameborder=\"0\" allowfullscreen></iframe></div><br>');
+				this.questionPane.append('<div><label>Audio Link: </label><input type="text" id="audiolink" value="#" hidden> </input></div>');
+				this.questionPane.append('<br><label><input type="radio" name="optionsRadios" id="optionsRadios1" value="skip"> Skip Question</input></label>');
+				
 			}
 				
 			if (q.subsections.types == "question")
@@ -675,14 +675,40 @@ var resultView = {
 				});
 				var t4 = document.createTextNode(section);
 				td4.appendChild(t4);
-				if(section=="E3-Speaking"){
-					spklink=value.submittedans;
-				}
+				// if(section=="E3-Speaking"){
+				// 	spklink=value.submittedans;
+				// }
 				var td5 = document.createElement("TD");
 				var t5 = document.createTextNode(value.q_score);
 				td5.appendChild(t5);
 				var td6 = document.createElement("TD");
-				var t6 = document.createTextNode(value.submittedans);
+				if(section=="E3-Speaking"){
+					// alert("im in");
+					var t6 = document.createElement("audio");
+					t6.setAttribute("controls", "controls")
+					$.ajax({
+				        url: "/get_audio",
+				        type: 'GET',
+				        contentType: false,
+				        processData: false,
+				        success: function(data) {
+				        	console.log(["Audio fetch Success", data]);
+				        	spklink = value.submittedans;
+							t6.setAttribute("src", 'data:audio/webm;base64,'+data);
+				        },
+				        error: function(msg){
+				        	$("#message").text("Audio fetching failed");
+
+				        	console.log("Error occured");
+
+				        	// console.log(msg);
+				        }
+				    });	
+					
+				}
+				else{
+					var t6 = document.createTextNode(value.submittedans);
+				}
 				td6.appendChild(t6);
 				var td7 = document.createElement("TD");
 				var btn = document.createElement("BUTTON");

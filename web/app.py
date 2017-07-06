@@ -3,7 +3,7 @@ from flask import Flask, flash, redirect, render_template, \
      make_response, Response as ress
 from flask_sqlalchemy import SQLAlchemy
 from cerberus import Validator
-from sqlalchemy import cast
+from sqlalchemy import cast, func, distinct
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import JSON
 from functools import wraps
@@ -634,6 +634,29 @@ def test():
          <input type=submit value=Upload>
     </form>
     '''
+
+@app.route('/audio_upload', methods=["POST"])
+def audio_upload():
+    try:
+        file = request.files['file']
+        if file:
+            useraudio = UserAudio(user=session['user']['email'], blob1=file.read())
+            db.session.add(useraudio)
+            db.session.commit()
+            return app.response_class(base64.b64encode(useraudio.blob1), mimetype="audio/webm")
+    except Exception as e:
+        return "Record Not Saved.\n\n"+str(e)
+
+@app.route('/get_audio', methods=["GET"])
+def get_audio():
+    app.logger.info("get audio called")
+    event = UserAudio.query.filter_by(user=session['user']['email']).order_by(UserAudio.time.desc()).first()
+    if not event:
+        return "#"
+    # app.logger.info(event.blob1)
+    return app.response_class(base64.b64encode(event.blob1), mimetype="audio/webm")
+    # return '<audio src="data:audio/webm;base64,'+base64.b64encode(event.blob1).decode('utf-8')+'" controls></audio>'
+    
      
 
 @app.route("/testmail")
@@ -655,9 +678,15 @@ def allowed_to_take_test(testid=""):
     email = session['user']['email']
     studenttests = StudentTests.query.filter_by(emailid=email).first()
     if session["user"]["role"]=="admin":
-        Response.query.filter_by(emailid=session["user"]['email']).delete()
+        response = Response.query.filter_by(emailid=session["user"]['email']).all()
+       
+        for res in response:
+            db.session.delete(res)
         db.session.commit()
-        TestDetails.query.filter_by(email=session["user"]['email']).delete()
+        details = TestDetails.query.filter_by(email=session["user"]['email']).all()
+        for detail in details:
+            db.session.delete(detail)
+
         db.session.commit()
         return True
     if not studenttests:
@@ -789,7 +818,7 @@ def getquizstatus():
 
     ss=json.dumps(json_data)
     return ss
-requests
+
 @app.route('/testtime', methods=['POST'])
 def testtime():
     duration = 60 * 60
@@ -952,12 +981,12 @@ def autosaveEssay():
     vals = json.loads(data.decode("utf-8"))
     vals = vals['jsonData']
     qid = vals['currentQuestion']
-    print(vals)
-    ans = vals['draft']
+    # print(vals)
+    ans = vals['draft'] if 'draft' in vals else ""
     qattemptedtime = vals['responsetime']
-    print(vals)
+    # print(vals)
     data1 = EssayTypeResponse.query.filter_by(useremailid = session['user']['email'], qid = qid).first()
-    print(qid)
+    # print(qid)
 
     if data1:
         data1.qattemptedtime=qattemptedtime
@@ -1703,8 +1732,9 @@ def downloadTestResults(testid):
                     "testctime",
                 ]
         # app.logger.info(list(data)[0])
-        Questions_count = int((len(list(data)[0])-5)/6)
-        # app.logger.info(["number is ", Questions_count])
+
+        Questions_count = db.session.query(distinct(Randomize.qno)).count()
+        app.logger.info(["number is ", Questions_count])
         # return ""
         for i in range(1, Questions_count + 1):
             # app.logger.info("hi ra --> Question"+ str(i))
@@ -1721,7 +1751,7 @@ def downloadTestResults(testid):
         csvList.append(header)
 
         for csv_line in data:
-            # app.logger.info(csv_line)
+            app.logger.info(csv_line)
             row = [csv_line["name"],
                     csv_line["rollno"],
                     csv_line["emailid"],
@@ -1730,12 +1760,12 @@ def downloadTestResults(testid):
             for i in range(1, Questions_count + 1):
                 row.extend(
                         [
-                            csv_line["Question_"+str(i)+""],                          
-                            csv_line["Question_"+str(i)+"_Score"],
-                            csv_line["Question_"+str(i)+"_Submittedans"],
-                            csv_line["Question_"+str(i)+"_Responsetime"],
-                            csv_line["Question_"+str(i)+"_Status"],
-                            csv_line["Question_"+str(i)+"_Time"],
+                            csv_line["Question_"+str(i)+""] if "Question_"+str(i)+"" in csv_line else "",                          
+                            csv_line["Question_"+str(i)+"_Score"] if "Question_"+str(i)+"_Score" in csv_line else "",
+                            csv_line["Question_"+str(i)+"_Submittedans"] if "Question_"+str(i)+"_Submittedans" in csv_line else "",
+                            csv_line["Question_"+str(i)+"_Responsetime"] if "Question_"+str(i)+"_Responsetime" in csv_line else "",
+                            csv_line["Question_"+str(i)+"_Status"] if "Question_"+str(i)+"_Status" in csv_line else "",
+                            csv_line["Question_"+str(i)+"_Time"] if "Question_"+str(i)+"_Time" in csv_line else "",
                         ]
                     )
             csvList.append(row)

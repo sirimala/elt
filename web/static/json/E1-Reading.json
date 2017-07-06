@@ -92,51 +92,6 @@
                         "http://magoosh.com/gre/2012/gre-short-reading-passages/",
                         "http://www.majortests.com/sat/reading-comprehension.php"
                     ]
-                },
-                {
-                    "question": "What, according to the Author, is a step in the direction of tackling corruption?",
-                    "options": [
-                        "~Bank accounts for all citizens",
-                        "=Unique I.D. number based on biometric information",
-                        "~Increasing penalties for tax evasion",
-                        "~None of the above"
-                    ],
-                    "id": "7",
-                    "answer": "Unique I.D. number based on biometric information",
-                    "practicelinks": [
-                        "http://magoosh.com/gre/2012/gre-short-reading-passages/",
-                        "http://www.majortests.com/sat/reading-comprehension.php"
-                    ]
-                },
-                {
-                    "question": "In countries like India, illegal economies are entirely separate from the mainstream economy.",
-                    "options": [
-                        "~True",
-                        "=False",
-                        "~Partly true",
-                        "~Maybe"
-                    ],
-                    "id": "8",
-                    "answer": "False",
-                    "practicelinks": [
-                        "http://magoosh.com/gre/2012/gre-short-reading-passages/",
-                        "http://www.majortests.com/sat/reading-comprehension.php"
-                    ]
-                },
-                {
-                    "question": "In paragraph 11, the word “hoarder” is closest in meaning to",
-                    "options": [
-                        "~Waster",
-                        "~Boarder",
-                        "=Collector",
-                        "~Miser"
-                    ],
-                    "id": "9",
-                    "answer": "Collector",
-                    "practicelinks": [
-                        "http://magoosh.com/gre/2012/gre-short-reading-passages/",
-                        "http://www.majortests.com/sat/reading-comprehension.php"
-                    ]
                 }
             ]
         },

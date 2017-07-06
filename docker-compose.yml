@@ -6,7 +6,8 @@ web:
   links:
     - postgres:postgres
   volumes:
-    - /usr/src/app/static
+    - /usr/src/app/static:/static
+    - /web:/web
   env_file: .env
   command: /usr/local/bin/gunicorn -w 2 app:app -b :8000 --log-file - --reload 
 
@@ -16,7 +17,7 @@ nginx:
   ports:
     - "80:80"
   volumes:
-    - /web/static
+    - /static
   volumes_from:
     - web
   links:

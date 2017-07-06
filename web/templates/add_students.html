@@ -108,10 +108,17 @@
  	//prefil form
  	$.get( "/prefiledit/{{session['TestID']}}", function( data ) {
    		data = JSON.parse(data);
-   		$('#datetimepicker1').data("DateTimePicker").date(data['start_date']);
-   		$('#datetimepicker2').data("DateTimePicker").date(data['end_date']);
+   		// $("#datetimepicker1").on("dp.change", function (e) {
+   		// 	$('#datetimepicker1').data("DateTimePicker").date(data['start_date']);
+     //        $('#datetimepicker2').data("DateTimePicker").minDate(e.date);
+     //    });
+     //    $("#datetimepicker2").on("dp.change", function (e) {
+   		// 	$('#datetimepicker2').data("DateTimePicker").date(data['end_date']);
+     //        $('#datetimepicker1').data("DateTimePicker").maxDate(e.date);
+     //    });
+
    		console.log(data['students']);
-   		$("#studentslist").html('');
+   		$("#existingstudentslist").html('');
    		$.each(data['students'], function(index,val){
 	   		var dom = `<div class="input-group">
       <input type="text" class="form-control" value="`+val+`" disabled>
