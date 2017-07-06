@@ -636,6 +636,7 @@ def test():
     '''
 
 @app.route('/audio_upload', methods=["POST"])
+@login_required
 def audio_upload():
     try:
         file = request.files['file']
@@ -648,6 +649,7 @@ def audio_upload():
         return "Record Not Saved.\n\n"+str(e)
 
 @app.route('/get_audio', methods=["GET"])
+@login_required
 def get_audio():
     app.logger.info("get audio called")
     event = UserAudio.query.filter_by(user=session['user']['email']).order_by(UserAudio.time.desc()).first()
@@ -751,6 +753,7 @@ def checklogin():
         return render_template('register.html')
 
 @app.route('/savepersonaldata', methods=['POST'])
+@login_required
 def savepersonaldata():
     userdetails = userDetails.query.filter_by(email=session['user']['email']).first()
     if not userdetails:
@@ -760,6 +763,7 @@ def savepersonaldata():
     return redirect(url_for('startquiz'))
 
 @app.route('/getquizstatus', methods=['POST'])
+@login_required
 def getquizstatus():
     #qbank=QuestionBank()
     # check if candidate is resuming the test
@@ -820,6 +824,7 @@ def getquizstatus():
     return ss
 
 @app.route('/testtime', methods=['POST'])
+@login_required
 def testtime():
     duration = 60 * 60
     td = TestDetails.query.filter_by(email=session['user']['email']).first()
@@ -853,6 +858,7 @@ def testtime():
     return ss
 
 @app.route('/submitanswer', methods=["POST"])
+@login_required
 def submitanswer():
     td=TestDetails.query.filter_by(email=session['user']['email']).first()
     if td and not td.testend:
@@ -976,6 +982,7 @@ def getScore():
     return render_template("testresult.html")
 
 @app.route('/autosaveEssay', methods=["POST"])
+@login_required
 def autosaveEssay():
     data = request.get_data()
     vals = json.loads(data.decode("utf-8"))
@@ -1007,6 +1014,7 @@ def uploadredirect():
     return redirect(url_for("/upload_audio"))
 
 @app.route('/upload_audio', methods=["POST"])
+@login_required
 def upload_audio():
     try:
         files = request.files.getlist('file')
@@ -1018,6 +1026,7 @@ def upload_audio():
         return "Record Not Saved.\n\n"+str(e)
 
 @app.route('/view_audio/<link>', methods=["GET"])
+@login_required
 def view_audio(link):
     event = UserAudio.query.get_or_404(link)
     return app.response_class(event.blob1, mimetype='application/octet-stream')
@@ -1026,6 +1035,7 @@ def view_audio(link):
 # def audio():
 
 @app.route('/endtest', methods=["POST"])
+@login_required
 def endtest():
     val = json.loads(cgi.escape(str(request.get_data(), 'utf-8')))
     val = val['jsonData']
@@ -1045,6 +1055,7 @@ def endtest():
         db.session.commit()
 
 @app.route('/startquiz')
+@login_required
 def startquiz():
     return render_template('quiz.html')
 
