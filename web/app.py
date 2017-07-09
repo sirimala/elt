@@ -29,6 +29,8 @@ import pytz
 import io
 import csv
 import inspect
+import unittest
+
 
 app = Flask(__name__, static_url_path='')
 mail=Mail(app)
@@ -630,7 +632,7 @@ def test():
         return app.response_class(base64.b64encode(test.blob1), mimetype="audio/webm")
         # return app.response_class(test.blob1, mimetype='application/octet-stream')
     else:
-        return str(datetime.now())
+        # return str(datetime.now())
         return '''
     <!doctype html>
     <title>Upload new File</title>
@@ -679,15 +681,18 @@ def get_audio(user=None):
     # return '<audio src="data:audio/webm;base64,'+base64.b64encode(event.blob1).decode('utf-8')+'" controls></audio>'
 
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 @login_required
 def index(role=None):
     # return render_template('index.html')
-    if not role:
-        if 'role' not in session['user']:
-            return "Your account still not activated, Please come here after activation of your account."
-        role = session['user']['role']
-    return redirect(url_for(role))
+    if request.method == "GET":
+        if not role:
+            if 'role' not in session['user']:
+                return "Your account still not activated, Please come here after activation of your account."
+            role = session['user']['role']
+        return redirect(url_for(role))
+    else:
+        return None
 
 
 def get_role_from_session():
@@ -712,9 +717,10 @@ def delete_entries(Object, email):
         db.session.delete(entry)
     db.session.commit()
 
-def allowed_to_take_test(testid="", email=None):
+def allowed_to_take_test(testid=None, email=None):
 
-    email = email if email else session['user']['email']
+    if not email or not testid:
+        return False
 
     studenttests = getFirstTestRecord(email)
     if get_role_from_session()=="admin":
@@ -1313,6 +1319,7 @@ def login():
         ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
         email = request.form['email']
         password = request.form['password']
+        app.logger.info([email, password])
         user = valid_user_login(email, password)
         if user:
             if user.verified != "false":
@@ -1835,6 +1842,7 @@ def getAllStudentDetails():
     for student in students:
         if student.email not in student_table:
             student_table[student.email] = {"name": student.name, "rollno":student.rollno}
+    # app.logger.info(json.dumps(student_table))
     return json.dumps(student_table)
 
 def get_test_responses_as_dict(testid=None):
@@ -1885,8 +1893,8 @@ def get_test_responses_as_dict(testid=None):
                             "Question_"+str(table[rollno]['count'])+"":currentQuestion,
                         })
             table[rollno]['count'] += 1
-
-        return table
+        # app.logger.info(table)
+        return json.dumps(table)
 
 def render_csv_from_test_responses(data):
         csvList = []
@@ -1968,11 +1976,23 @@ def getrecorder():
 # ==================================================
                     # UNIT Tests
 # ==================================================
+def assertFalse(input):
+    return False == input
 
-def evaluate(name, expected, actual):
+def assertTrue(input):
+    return True == input
+
+def assertEqual(input, input1):
+    return input1 == input
+
+def assertContains(input, input1):
+    return input in input1
+
+
+def test_handler(name, expected, actual):
     output = {"testcase_name":name, "result":None, "response":None}
     try:
-        if json.loads(actual) == json.loads(expected):
+        if actual == expected:
             result = "Pass"
             response = "OK"
         else:
@@ -1994,32 +2014,56 @@ def datetime_handler(x):
 
 def test_get_test_responses_as_dict():
     output = {"function_name": inspect.stack()[0][3], "testcases":[]}
-    expected = {"128": {"emailid": "sirimala.sreenath@gmail.com", "Question_5_Status": "submitted", "Question_6_Submittedans": "#", "Question_1": "102", "Question_2": "103", "Question_4_Score": 0, "Question_3_Responsetime": 2.279, "Question_3": "104", "Question_5_Score": 0, "testctime": "2017-07-08T07:45:24.463860", "Question_6": "201", "Question_2_Score": 1, "Question_6_Status": "submitted", "Question_2_Responsetime": 1.317, "Question_3_Status": "submitted", "Question_4": "105", "Question_3_Score": 0, "Question_5_Responsetime": 2.021, "Question_4_Submittedans": "None of these", "Question_5_Time": "2017-07-08T07:45:50.917283", "Question_4_Time": "2017-07-08T07:45:48.870909", "Question_1_Time": "2017-07-08T07:45:43.599523", "Question_4_Status": "submitted", "count": 7, "Question_6_Time": "2017-07-08T07:50:07.829351", "Question_3_Time": "2017-07-08T07:45:47.254924", "Question_2_Time": "2017-07-08T07:45:44.958977", "Question_2_Submittedans": "By the Prime Minister of India in an unscheduled, real time, televised address to the nation", "Question_6_Score": 0, "Question_1_Status": "submitted", "Question_1_Submittedans": "All of the above", "rollno": "128", "Question_3_Submittedans": "False", "Question_1_Score": 1, "name": "Sreenath", "Question_5_Submittedans": "Partly true", "Question_6_Responsetime": 257.088, "Question_1_Responsetime": 4.737, "Question_2_Status": "submitted", "Question_5": "106", "Question_4_Responsetime": 1.591}, "1234": {"emailid": "vy@fju.us", "Question_7_Submittedans": "#", "Question_8_Responsetime": 6.418, "Question_5": "105", "Question_3": "103", "Question_6_Time": "2017-07-08T07:42:04.291266", "Question_7_Status": "submitted", "Question_6": "106", "Question_5_Status": "submitted", "Question_2_Responsetime": 1.472, "Question_8_Score": 0, "Question_3_Score": 1, "Question_6_Responsetime": 1.89, "Question_1_Score": 0, "Question_5_Responsetime": 1.768, "count": 9, "Question_2_Time": "2017-07-08T07:41:54.570905", "Question_8_Status": "submitted", "Question_3_Submittedans": "By the Prime Minister of India in an unscheduled, real time, televised address to the nation", "Question_7_Time": "2017-07-08T07:42:06.512938", "Question_1_Status": "submitted", "Question_6_Submittedans": "True", "rollno": "1234", "name": "Veda", "Question_5_Submittedans": "Safety fee", "Question_6_Status": "submitted", "Question_8": "1", "Question_7_Responsetime": 2.181, "Question_8_Time": "2017-07-08T07:42:12.949458", "Question_7": "201", "Question_1": "101", "Question_2": "102", "Question_4_Score": 0, "Question_4": "104", "Question_5_Score": 0, "testctime": "2017-07-08T07:41:47.277874", "Question_2_Score": 0, "Question_3_Status": "submitted", "Question_8_Submittedans": "The answer to all the problems", "Question_6_Score": 0, "Question_4_Submittedans": "Not sure", "Question_5_Time": "2017-07-08T07:42:02.361560", "Question_2_Status": "submitted", "Question_1_Time": "2017-07-08T07:41:53.051284", "Question_7_Score": 0, "Question_4_Status": "submitted", "Question_3_Time": "2017-07-08T07:41:56.276504", "Question_3_Responsetime": 1.668, "Question_1_Submittedans": "3.26 million people", "Question_2_Submittedans": "Maoist extremism", "Question_1_Responsetime": 3.99, "Question_4_Time": "2017-07-08T07:42:00.559407", "Question_4_Responsetime": 4.249}}
-    expected = json.dumps(expected)
-    testcases = [("test1", expected, json.dumps(get_test_responses_as_dict(None), default=datetime_handler)),
-        ("test2",expected,json.dumps(get_test_responses_as_dict(12), default=datetime_handler)),
-        ("test3",expected,json.dumps(get_test_responses_as_dict("12"), default=datetime_handler)),
-        ("test4",expected,json.dumps(get_test_responses_as_dict(16), default=datetime_handler)),
-        ("test5",expected,json.dumps(get_test_responses_as_dict(122), default=datetime_handler)),]
+    expected = {}
+    testcases = [
+        ("test1", expected, get_test_responses_as_dict(None)),
+        ("test2",expected,get_test_responses_as_dict(12)),
+        ("test3",expected,get_test_responses_as_dict("12")),
+        ("test4",expected,get_test_responses_as_dict(16)),
+        ("test5",expected,get_test_responses_as_dict(122))
+    ]
     for testcase in testcases:
-        testcase_output = evaluate(testcase[0], testcase[1], testcase[2])
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2])
         # app.logger.info(testcase_output)
         output['testcases'].append(testcase_output)
+    app.logger.info(output)
     return str(output)
 
 def test_add_user_if_not_exist():
+    
     output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    Users.query.filter_by(emailid="sirimala.sreenath@gmail.com").delete()
     testcases = [
-        ("test1", json.dumps("{}"), add_user_if_not_exist(email=None, password="generate_unique_code", user_type="student", verified=False))
+        ("test1", True, add_user_if_not_exist(email="sirimala.sreenath@gmail.com", password="generate_unique_code")),
+        ("test2",False, add_user_if_not_exist(email="sirimala.sreenath@gmail.com", password="generate_unique_code")),
+        ("test3",False, add_user_if_not_exist(email="sirimala.sreenath@gmail.com", password="generate_unique_code")),
     ]
     
     for testcase in testcases:
-        testcase_output = evaluate(testcase[0], testcase[1], testcase[2])
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2])
         # app.logger.info(testcase_output)
         output['testcases'].append(testcase_output)
+    app.logger.info(output)
+    return str(output)
+def test_allowed_to_take_test():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", False, allowed_to_take_test("", "")),
+        ("test2",False, allowed_to_take_test("", "sirimala.sreenath@gmail.com")),
+        ("test3",True, allowed_to_take_test("English Literacy Test", "sirimala.sreenath@gmail.com")),
+    ]
+    
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2])
+        # app.logger.info(testcase_output)
+        output['testcases'].append(testcase_output)
+    app.logger.info(output)
     return str(output)
 
 @app.route('/unit_test')
 def unit_test():
-    # return test_get_test_responses_as_dict()
     return test_add_user_if_not_exist()
+    # return test_get_test_responses_as_dict()
+
+    # return test_allowed_to_take_test()
+
