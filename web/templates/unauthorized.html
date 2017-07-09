@@ -2,6 +2,7 @@
 {%block title%}Unauthorized Access{%endblock%}
 {%block body%}
 <div class="container">
+	{{error}}
 	{%if session['user']%}
 		Hello {{session['user']['email']}},
 		You currently have access as a {{session['user']['role']}}.
