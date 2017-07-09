@@ -1834,9 +1834,7 @@ def autocomplete(search=None):
     results = [mv[0] for mv in query.all()]
     return jsonify(matching_results=results)
 
-@app.route('/getAllStudentDetails', methods=['GET'])
-@admin_login_required
-def getAllStudentDetails():
+def get_all_student_details():
     students = userDetails.query.all()
     student_table = {}
     for student in students:
@@ -1845,10 +1843,16 @@ def getAllStudentDetails():
     # app.logger.info(json.dumps(student_table))
     return json.dumps(student_table)
 
+@app.route('/getAllStudentDetails', methods=['GET'])
+@admin_login_required
+def getAllStudentDetails():
+    return get_all_student_details()
+
 def get_test_responses_as_dict(testid=None):
+        
         result = Response.query.all()
 
-        students = json.loads(getAllStudentDetails())
+        students = json.loads(get_all_student_details())
         questions = ""
         # app.logger.info(students)
         table = {}
@@ -1894,7 +1898,7 @@ def get_test_responses_as_dict(testid=None):
                         })
             table[rollno]['count'] += 1
         # app.logger.info(table)
-        return json.dumps(table)
+        return table
 
 def render_csv_from_test_responses(data):
         csvList = []
@@ -2014,7 +2018,7 @@ def datetime_handler(x):
 
 def test_get_test_responses_as_dict():
     output = {"function_name": inspect.stack()[0][3], "testcases":[]}
-    expected = {}
+    expected = {'128': {'Question_1_Score': 1, 'Question_5_Score': 0, 'Question_3_Time': datetime(2017, 7, 8, 7, 45, 47, 254924), 'Question_3': '104', 'Question_6': '201', 'Question_6_Score': 0, 'count': 7, 'Question_6_Submittedans': '#', 'Question_6_Time': datetime(2017, 7, 8, 7, 50, 7, 829351), 'Question_4_Status': 'submitted', 'Question_3_Status': 'submitted', 'Question_2_Score': 1, 'Question_3_Submittedans': 'False', 'name': 'Sreenath', 'Question_1_Status': 'submitted', 'Question_4_Time': datetime(2017, 7, 8, 7, 45, 48, 870909), 'Question_5': '106', 'rollno': '128', 'Question_5_Submittedans': 'Partly true', 'Question_2_Submittedans': 'By the Prime Minister of India in an unscheduled, real time, televised address to the nation', 'emailid': 'sirimala.sreenath@gmail.com', 'Question_2_Time': datetime(2017, 7, 8, 7, 45, 44, 958977), 'Question_5_Status': 'submitted', 'Question_1': '102', 'Question_1_Time': datetime(2017, 7, 8, 7, 45, 43, 599523), 'Question_6_Status': 'submitted', 'Question_1_Submittedans': 'All of the above', 'Question_2': '103', 'Question_5_Time': datetime(2017, 7, 8, 7, 45, 50, 917283), 'Question_2_Status': 'submitted', 'Question_1_Responsetime': 4.737, 'Question_5_Responsetime': 2.021, 'Question_3_Responsetime': 2.279, 'testctime': datetime(2017, 7, 8, 7, 45, 24, 463860), 'Question_3_Score': 0, 'Question_2_Responsetime': 1.317, 'Question_6_Responsetime': 257.088, 'Question_4': '105', 'Question_4_Score': 0, 'Question_4_Responsetime': 1.591, 'Question_4_Submittedans': 'None of these'}, '1234': {'Question_5_Score': 0, 'Question_3_Time': datetime(2017, 7, 8, 7, 41, 56, 276504), 'count': 9, 'Question_4_Status': 'submitted', 'Question_6_Time': datetime(2017, 7, 8, 7, 42, 4, 291266), 'Question_3_Submittedans': 'By the Prime Minister of India in an unscheduled, real time, televised address to the nation', 'Question_4_Submittedans': 'Not sure', 'Question_1_Status': 'submitted', 'rollno': '1234', 'Question_2_Submittedans': 'Maoist extremism', 'Question_7': '201', 'emailid': 'vy@fju.us', 'Question_5_Status': 'submitted', 'Question_3_Score': 1, 'Question_2': '102', 'Question_5_Time': datetime(2017, 7, 8, 7, 42, 2, 361560), 'Question_1_Responsetime': 3.99, 'Question_5_Responsetime': 1.768, 'Question_3': '103', 'Question_6_Submittedans': 'True', 'Question_2_Responsetime': 1.472, 'Question_7_Score': 0, 'Question_4_Responsetime': 4.249, 'Question_7_Status': 'submitted', 'Question_8_Score': 0, 'Question_1_Score': 0, 'Question_6_Score': 0, 'Question_8_Responsetime': 6.418, 'Question_6': '106', 'Question_7_Submittedans': '#', 'Question_1_Submittedans': '3.26 million people', 'Question_2_Score': 0, 'name': 'Veda', 'Question_7_Time': datetime(2017, 7, 8, 7, 42, 6, 512938), 'Question_4_Time': datetime(2017, 7, 8, 7, 42, 0, 559407), 'Question_5': '105', 'Question_5_Submittedans': 'Safety fee', 'Question_7_Responsetime': 2.181, 'Question_8': '1', 'Question_8_Submittedans': 'The answer to all the problems', 'Question_2_Time': datetime(2017, 7, 8, 7, 41, 54, 570905), 'Question_1': '101', 'Question_1_Time': datetime(2017, 7, 8, 7, 41, 53, 51284), 'Question_6_Status': 'submitted', 'Question_3_Status': 'submitted', 'Question_2_Status': 'submitted', 'Question_8_Time': datetime(2017, 7, 8, 7, 42, 12, 949458), 'Question_3_Responsetime': 1.668, 'testctime': datetime(2017, 7, 8, 7, 41, 47, 277874), 'Question_8_Status': 'submitted', 'Question_6_Responsetime': 1.89, 'Question_4': '104', 'Question_4_Score': 0}}
     testcases = [
         ("test1", expected, get_test_responses_as_dict(None)),
         ("test2",expected,get_test_responses_as_dict(12)),
@@ -2026,8 +2030,8 @@ def test_get_test_responses_as_dict():
         testcase_output = test_handler(testcase[0], testcase[1], testcase[2])
         # app.logger.info(testcase_output)
         output['testcases'].append(testcase_output)
-    app.logger.info(output)
-    return str(output)
+    # app.logger.info(output)
+    return output
 
 def test_add_user_if_not_exist():
     
@@ -2044,7 +2048,7 @@ def test_add_user_if_not_exist():
         # app.logger.info(testcase_output)
         output['testcases'].append(testcase_output)
     app.logger.info(output)
-    return str(output)
+    return output
 def test_allowed_to_take_test():
     output = {"function_name": inspect.stack()[0][3], "testcases":[]}
     testcases = [
@@ -2058,12 +2062,11 @@ def test_allowed_to_take_test():
         # app.logger.info(testcase_output)
         output['testcases'].append(testcase_output)
     app.logger.info(output)
-    return str(output)
+    return output
 
 @app.route('/unit_test')
 def unit_test():
-    return test_add_user_if_not_exist()
-    # return test_get_test_responses_as_dict()
-
-    # return test_allowed_to_take_test()
+    # return render_template("unit_tests.html", tests = [])
+    return render_template("unit_tests.html", tests = [test_add_user_if_not_exist(), test_get_test_responses_as_dict(), test_allowed_to_take_test()])
+    # return render_template("unit_tests.html", tests = [])
 

@@ -1,0 +1,30 @@
+{%extends "base.html"%}
+{%block title%}Unit Tests Page{%endblock%}
+{%block body%}
+<div class="container">
+	<table class="table">
+		<thead>
+			<tr>
+				<th>Function Name</th>
+				<th>Testcase Name</th>
+				<th>Response</th>
+				<th>Result</th>
+			</tr>
+		</thead>
+		<tbody>
+			{%for test in tests%}
+				{%set testcases = test['testcases']%}
+				{%for testcase in testcases%}
+					<tr>
+						<td>{{test.function_name}}</td>
+						<td>{{testcase.testcase_name}}</td>
+						<td>{{testcase.response}}</td>
+						<td>{{testcase.result}}</td>
+					</tr>
+				{%endfor%}
+			{%endfor%}
+		</tbody>
+	</table>
+	
+</div>
+{%endblock%}
