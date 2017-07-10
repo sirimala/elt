@@ -103,7 +103,7 @@
             			</tr>
             		</thead>
             		<tbody>
-            			
+            			<tr><td>Loading...</td></tr>
             		</tbody>
             	</table>
                       
@@ -120,6 +120,7 @@ $(document).ready(function() {
 	   $.get( url, function( data ) {
 	   		data = JSON.parse(data);
 	   		$.each(data, function(index,jsonObject){
+	   			$(".modal-body table tbody").html("");
 	   			tr = "<tr>";
 	   			tr += "<td>"+jsonObject['mail']+"</td>"
 	   			tr += "<td>"+jsonObject['status_code']+"</td>"

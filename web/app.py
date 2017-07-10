@@ -715,13 +715,13 @@ def delete_entries(Object, email):
         db.session.delete(entry)
     db.session.commit()
 
-def allowed_to_take_test(testid=None, email=None):
+def allowed_to_take_test(testid=None, email=None, role=None):
 
-    if not email or not testid:
+    if not email or not testid or not role:
         return False
 
     studenttests = getFirstTestRecord(email)
-    if get_role_from_session()=="admin":
+    if role=="admin":
         delete_entries(Response(), email)
         delete_entries(TestDetails(), email)
         return True
@@ -741,7 +741,7 @@ def quiz(email=None):
     email = email if email else get_email_from_session()
     if not role:
         return "Your account still not activated, Please come here after activation of your account."
-    if allowed_to_take_test("English Literacy Test", email):
+    if allowed_to_take_test("English Literacy Test", email, role):
         # return render_template('index.html')
         if len(TestDetails.query.filter_by(email=email).all()) != 0:
             return redirect("/checklogin")
@@ -851,15 +851,14 @@ def add_to_randomize(email=None,serialno=None,qno=None):
     if email == None or email == "" or serialno == None or serialno == "" or qno == None or qno == "":
         return False
     userdetails = userDetails.query.filter_by(email=email).first()
-    if not userdetails:
-        try:
-            r = Randomize(user1 = email, serialno = serialno, qno=qno)
-            db.session.add(r)
-            db.session.commit()
-            return True
-        except Exception as e:
-            app.logger.error(e)
-    return False
+    try:
+        r = Randomize(user1 = email, serialno = serialno, qno=qno)
+        db.session.add(r)
+        db.session.commit()
+        return True
+    except Exception as e:
+        app.logger.error(e)
+        return False
 
 
 def setquizstatus(email=None):
@@ -1050,7 +1049,7 @@ def submitanswer(email=None):
 
 def getResultOfStudent(email=None):
     if email == None or email == "":
-        return {"totalscore": 0, "question": []}
+        return json.dumps({"totalscore": 0, "question": []})
     totalscore = 0
     q1= Response.query.filter_by(emailid=email).order_by(Response.serialno, Response.time.desc()).all()
     questionresponses_dict = {}
@@ -1118,7 +1117,7 @@ def getessayresponse(data):
     return vals, qid, ans, qattemptedtime
 
 def saveessay(row=None,email=None,qid=None,ansText=None,qattemptedtime=None):
-    if email == None or email == "" or row == None:
+    if email == None or email == "":
         return False
     try:
         if row:
@@ -1234,7 +1233,9 @@ def generate_unique_code():
     return str(uuid.uuid1()).replace("-", "")
 
 def valid_user_login(email, password):
+    app.logger.info("Im in valid user login method")
     user = Users.query.filter_by(emailid=email, password=hashlib.md5(password.encode('utf-8')).hexdigest()).first()
+    app.logger.info([user,email,password])
     if user:
         return user
     return None
@@ -1462,7 +1463,7 @@ def registration():
 def update_password(user, password):
     try:
         user.password = hashlib.md5(password.encode('utf-8')).hexdigest()
-        db.session.add(user)
+        # db.session.add(user)
         db.session.commit()
         return True
     except Exception as e:
@@ -1553,8 +1554,13 @@ def audio():
 #     session.pop('adminemail', None)
 #     return redirect(url_for('adminlogin'))
 
-def createDefaultTest():
-    return redirect(url_for("create"))
+def createDefaultTest(TestID, author, start_date,end_date):
+    try:
+        test = Tests(TestID,author, start_date,end_date)
+        db.session.add(test)
+        db.session.commit()
+    except Exception as e:
+        app.logger.info(e)
 
 def settestsession(TestID,start_date,end_date):
     try:
@@ -1575,9 +1581,9 @@ def admin(email=None):
             
             return render_template('admin.html')
         else:
-            return createDefaultTest()
+            return redirect(url_for('create'))
     except Exception as e:
-        return createDefaultTest()
+        app.logger.info(e)
 
 def getFirstTestRecord(emailid):
     return StudentTests.query.filter(StudentTests.emailid == emailid).first()
@@ -1629,13 +1635,19 @@ def save_file(folder_name,file_name,data):
     # file.save(os.path.join(path, filename))
     # file.close()
 
-def updatetests(test_name,email,start_date,end_dtae):
+def updatetests(test_name=None,email=None,start_date=None,end_date=None):
+    if not test_name or not email or not start_date or not end_date:
+        return False
     try:
-        test = Tests(test_name, email, start_date, end_date)
-        db.session.add(test)
-        db.session.commit()
+        if not Tests.query.filter_by(name=test_name).first():
+
+            test = Tests(test_name, email, start_date, end_date)
+            db.session.add(test)
+            db.session.commit()
+            return True
     except Exception as e:
-        app.logger.info()
+        app.logger.info(e)
+    return False
 
 @app.route('/create', methods=["GET","POST"])
 @admin_login_required
@@ -1658,6 +1670,7 @@ def create(admin=None, test_name=None):
         if nameValid and startdateValid and enddateValid:
             testValid = True
             app.logger.info('%s created a Test - %s' %(admin,test_name))
+            createDefaultTest(test_name,admin, start_date,end_date)
             settestsession(test_name,start_date,end_date)
             return redirect(url_for("admin"))
         else:
@@ -1675,7 +1688,9 @@ def loadTestSet():
 def isRegistered(studentemail):
     registered = Users.query.filter(Users.emailid == studentemail).first()
     if registered:
-        return registered.verified
+        verified = registered.verified
+        if verified == 'true':
+            return True
     return False
 
 # def Invited(studentemail,testid):
@@ -1684,11 +1699,17 @@ def isRegistered(studentemail):
 #         return testid in studentrow.getTests()
 #     return False
 
-def updateDate(testid, start_date,end_date):
-    test = Tests.query.filter_by(name=testid).first()
-    test.start_date = start_date
-    test.end_date = end_date
-    db.session.commit()
+def updateDate(testid=None, start_date=None,end_date=None):
+    if testid is not None or start_date is not None or end_date is not None:
+        try:
+            test = Tests.query.filter_by(name=testid).first()
+            test.start_date = start_date
+            test.end_date = end_date
+            db.session.commit()
+            return True
+        except Exception as e:
+            app.logger.info(e)
+    return False
     
 def updateStudents(testid, students_list):
     
@@ -1801,7 +1822,7 @@ def sendNotifyMail(email='rguktemailtest@gmail.com'):
         return response
     except Exception as e:
         app.logger.info(e)
-
+        return False
 
 @app.route('/notify/<testid>', methods=["GET", "POST"])
 @admin_login_required
@@ -2077,7 +2098,7 @@ def test_add_user_if_not_exist():
     testcases = [
         ("test1", not None, add_user_if_not_exist(email="sirimala.sreenath@gmail.com", password="generate_unique_code"), "notNone"),
         ("test2",False, add_user_if_not_exist(email="sirimala.sreenath@gmail.com", password="generate_unique_code"), "equal"),
-        ("test3",False, add_user_if_not_exist(email="sirimala.sreenath@gmail.com", password="generate_unique_code"), "equal"),
+        ("test3",True, add_user_if_not_exist(email="vy@fju.us", password="generate_unique_code"), "notNone"),
     ]
     
     for testcase in testcases:
@@ -2093,10 +2114,13 @@ def test_add_user_if_not_exist():
 
 def test_allowed_to_take_test():
     output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    student = StudentTests("sirimala.sreenath@gmail.com", ["English Comprehension Test"])
+    db.session.add(student)
+    # db.session.commit()
     testcases = [
-        ("test1", False, allowed_to_take_test("", ""), "equal"),
-        ("test2",False, allowed_to_take_test("", "sirimala.sreenath@gmail.com"), "equal"),
-        ("test3",True, allowed_to_take_test("English Literacy Test", "sirimala.sreenath@gmail.com"), "equal"),
+        ("test1", False, allowed_to_take_test("", "", ""), "equal"),
+        ("test2",False, allowed_to_take_test("", "sirimala.sreenath@gmail.com", ""), "equal"),
+        ("test3",True, allowed_to_take_test("English Comprehension Test", "sirimala.sreenath@gmail.com","student"), "equal"),
     ]
     
     for testcase in testcases:
@@ -2104,6 +2128,7 @@ def test_allowed_to_take_test():
         # app.logger.info(testcase_output)
         output['testcases'].append(testcase_output)
     app.logger.info(output)
+    db.session.delete(student)
     return output
 
 def test_add_first_response():
@@ -2128,6 +2153,10 @@ def test_add_first_response():
 
 def test_add_user_profile():
     output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    existed = userDetails.query.filter_by(email="vy@fju.us").all()
+    for exist in existed:
+        db.session.delete(exist)
+    db.session.commit()
     testcases = [
         ("test1", True, add_user_profile("Veda","vy@fju.us",8686093417,1234,"Basara"), "equal"),
         ("test1", False, add_user_profile(), "equal"),
@@ -2139,10 +2168,7 @@ def test_add_user_profile():
         # app.logger.info(testcase_output)
         output['testcases'].append(testcase_output)
     app.logger.info(output)
-    existed = userDetails.query.filter_by(email="vy@fju.us").all()
-    for exist in existed:
-        db.session.delete(exist)
-    db.session.commit()
+    
     return output
 
 def test_qidlisttodict():
@@ -2185,7 +2211,7 @@ def test_setquizstatus():
         db.session.add(td)
         db.session.commit()
     testcases = [
-        ("test1", "INPROGRESS", setquizstatus("vy@fju.us"), "equal"),
+        ("test1", "END", setquizstatus("vy@fju.us"), "equal"),
         ("test1", False, setquizstatus(), "equal"),
         ("test2","START", setquizstatus(""), "equal"),
     ]
@@ -2242,13 +2268,13 @@ def test_getResultOfStudent():
     storeresponse("vy@fju.us",101,"submitted",1.26)
     storeresponse("vy@fju.us",102,"skip",1.80)
     giveninput2 = getResultOfStudent("vy@fju.us")
-    expected2 = {"question": [{"responsetime": 1.26, "q_score": 0, "submittedans": "submitted", "user": "vy@fju.us", "currentQuestion": "101"}, {"responsetime": 1.8, "q_score": 0, "submittedans": "skip", "user": "vy@fju.us", "currentQuestion": "102"}], "totalscore": 0}
+    expected2 = {"totalscore": 0, "question": [{"user": "vy@fju.us", "submittedans": "submitted", "currentQuestion": "101", "q_score": 0, "responsetime": 1.26}, {"user": "vy@fju.us", "submittedans": "skip", "currentQuestion": "102", "q_score": 0, "responsetime": 1.8}]}
     giveninput3 = getResultOfStudent()
     testcases = [
-        ("test1", expected, giveninput, "equal"),
-        ("test2", expected2, giveninput2, "equal"),
-        ("test3", expected, giveninput3, "equal"),
-        ("test4", expected, getResultOfStudent(""), "equal"),
+        ("test1", expected, json.loads(giveninput), "equal"),
+        ("test2", expected2, json.loads(giveninput2), "equal"),
+        ("test3", expected, json.loads(giveninput3), "equal"),
+        ("test4", expected, json.loads(getResultOfStudent("")), "equal"),
     ]
     for testcase in testcases:
         testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
@@ -2315,21 +2341,25 @@ def test_generate_unique_code():
 def test_valid_user_login():
     output = {"function_name": inspect.stack()[0][3], "testcases":[]}
     existed = Users.query.filter_by(emailid="vy@fju.us").all()
-    if not existed:
-        user = Users("vy@fju.us","","student",True)
-        db.session.add(user)
-        db.session.commit()
-        update_password(user,"veda1997")
+    app.logger.info(existed)
+    for exist in existed:
+        app.logger.info(['deleting', exist.emailid])
+        db.session.delete(exist)
+    
+    app.logger.info(Users.query.filter_by(emailid="vy@fju.us").all())
+    user = Users("vy@fju.us",hashlib.md5("veda1996".encode('utf-8')).hexdigest(),"student",True)
+    db.session.add(user)
+    # update_password(user,)
+
     testcases = [
-        ("test1", True, valid_user_login("vy@fju.us",hashlib.md5("veda1997".encode('utf-8')).hexdigest()), "equal")
+        ("test1", True, valid_user_login("vy@fju.us", "veda1996"), "notNone")
     ]
     
     for testcase in testcases:
         testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
         output['testcases'].append(testcase_output)
-    for exist in existed:
-        db.session.delete(exist)
-    db.session.commit()
+
+    db.session.delete(user)
     return output
 
 def test_makestatusbutton():
@@ -2369,7 +2399,7 @@ def test_gettestdetails():
     input2 = gettestdetails("vy@fju.us","English Literacy Test")
     testcases = [
         ("test1", expected, input1, "equal"),
-        ("test2", "['English Literacy Test', '06-07-2017 15:30', '02-08-2017 12:00', \"<a href='/quiz' class='btn btn-sm btn-warning'>In Progress!</a>\"]", input2, "equal"),
+        ("test2", ['English Literacy Test', '06-07-2017 15:30', '02-08-2017 12:00', "<a href='/quiz' class='btn btn-sm btn-warning'>In Progress!</a>"], input2, "equal"),
     ]
     
     for testcase in testcases:
@@ -2380,7 +2410,7 @@ def test_gettestdetails():
 def test_add_default_user_admin_if_not_exist():
     output = {"function_name": inspect.stack()[0][3], "testcases":[]}
     testcases = [
-        ("test1", False, add_default_user_admin_if_not_exist(), "equal"),
+        ("test1", True, add_default_user_admin_if_not_exist(), "equal"),
         ("test2", False, add_default_user_admin_if_not_exist(), "equal"),
     ]
     for testcase in testcases:
@@ -2399,7 +2429,17 @@ def test_sendMail():
         output['testcases'].append(testcase_output)
     return output
 
-update_password
+def test_sendNotifyMail():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", True, sendNotifyMail("vy@fju.us"), "notNone"),
+        ("test2", True, sendNotifyMail("admin@quiz.in"), "notNone")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
 def test_update_password():
     output = {"function_name": inspect.stack()[0][3], "testcases":[]}
     user = Users.query.filter_by(emailid="vy@fju.us").all()
@@ -2418,10 +2458,198 @@ def test_update_password():
         output['testcases'].append(testcase_output)
     return output
 
+def test_getQuestionPaper():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", [], getQuestionPaper([0])["section"][0]["subsection"][0]['questions'], "notNone"),
+        ("test2", [], getQuestionPaper([])["section"][0]["subsection"][0]['questions'], "equal")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_generateQuestionPaper():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", not None, generateQuestionPaper()["section"][0]["subsection"][0]['questions'], "notNone"),
+        ("test2", not None, generateQuestionPaper()["section"][0]["subsection"][0]['questions'], "notNone")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_render_csv_from_test_responses():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    data = get_test_responses_as_dict()
+    testcases = [
+        ("test1", not None, render_csv_from_test_responses(data), "notNone"),
+        ("test2", not None, render_csv_from_test_responses(data), "notNone")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_get_all_test_created_by():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", {}, get_all_test_created_by(None), "equal"),
+        ("test2", [], get_all_test_created_by("admin@quiz.in")['data'], "notNone"),
+        ("test3", type([]), type(get_all_test_created_by("admin@quiz.in")['data']), "notNone")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_isRegistered():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    user = Users(emailid="admin@quiz.in",password="sree", user_type="admin", verified=True)
+    db.session.add(user)
+    db.session.commit()
+    testcases = [
+        ("test1", True, isRegistered("admin@quiz.in"), "equal"),
+        ("test2", False, isRegistered("sirimala.sirimala@gmail.com"), "equal")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+
+    db.session.delete(user)
+    db.session.commit()
+
+    return output
+
+def test_getAnswer():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", "Other measures to restructure the economy", getAnswer(10), "equal"),
+        ("test2", "Forerunner", getAnswer(11), "equal")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_getendtestdata():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    request_data = {'jsonData':{}}
+    val = request_data['jsonData']
+    val['testend'] = 'true'
+    val['finalScore'] = '12'
+    val['spklink'] = 'http://link'
+    testcases = [
+        ("test1", (val, 'true', '12', 'http://link'), getendtestdata(request_data), "equal"),
+        ("test2", False, getendtestdata({}), "equal")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_get_all_student_details():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    input1 = get_all_student_details()
+    name = "Veda"
+    email = "vy@fju.us"
+    rollno = 1234
+    add_user_profile("Veda","vy@fju.us",8686093417,1234,"Basara")
+    expected = json.dumps({email: {"name": name, "rollno": str(rollno)}})
+    input2 = get_all_student_details()
+    testcases = [
+        ("test1", json.dumps({}), input1, "equal"),
+        ("test2", expected, input2, "equal")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_validate_name():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    name = "English Comprehension Test"
+    test = Tests.query.filter_by(name=name).first()
+    if test:
+        db.session.delete(test)
+        db.session.commit()
+    input1 = validate_name(name)
+    td = Tests("English Comprehension Test","vy@fju.us",'06-07-2017 15:30', '02-08-2017 12:00')
+    db.session.add(td)
+    db.session.commit()
+    input2 = validate_name(name)
+    testcases = [
+        ("test1", True, input1, "equal"),
+        ("test2", False, input2, "equal")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_validate_date():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", False, validate_date("30-06-2017 12:00"), "equal"),
+        ("test2", True, validate_date("30-08-2017 12:00"), "equal")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_updatetests():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    name = "English Comprehension Test"
+    test = Tests.query.filter_by(name=name).first()
+    if test:
+        db.session.delete(test)
+        db.session.commit()
+    input1 = updatetests("English Comprehension Test","vy@fju.us",'16-07-2017 15:30', '02-08-2017 12:00')
+    input2 = updatetests("English Comprehension Test","vy@fju.us",'16-07-2017 15:30', '02-08-2017 12:00')
+    
+    testcases = [
+        ("test1", True, input1, "equal"),
+        ("test2", False, input2, "equal"),
+        ("test3", False, updatetests(), "equal")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_updateDate():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    updatetests("English Comprehension Test","vy@fju.us",'16-07-2017 15:30', '02-08-2017 12:00')
+    testcases = [
+        ("test1", True, updateDate("English Comprehension Test",'15-07-2017 15:30', '02-08-2017 12:00'), "equal"),
+        ("test2", False, updateDate("English Literacy",'16-07-2017 15:30', '02-08-2017 12:00'), "equal"),
+        ("test3", False, updateDate(), "equal")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
 @app.route('/unit_test')
 def unit_test():
     if eval(os.environ['DEBUG']):
+        db.drop_all()
+        db.create_all()
         return render_template("unit_tests.html", tests = [
+            test_get_all_student_details(),
+            test_validate_name(),
+            test_validate_date(),
+            test_updatetests(),
+            test_updateDate(),
+            test_getendtestdata(),
+            test_getAnswer(),
+            test_isRegistered(),
+            test_get_all_test_created_by(),
+            test_render_csv_from_test_responses(),
+            test_getQuestionPaper(),
+            test_generateQuestionPaper(),
             test_add_user_if_not_exist(),
             test_get_test_responses_as_dict(),
             test_allowed_to_take_test(),
@@ -2439,7 +2667,6 @@ def unit_test():
             test_makestatusbutton(),
             test_gettestdetails(),
             test_add_default_user_admin_if_not_exist(),
-            test_sendMail(),
             test_update_password(),
         ])
     else:
