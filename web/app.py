@@ -18,7 +18,7 @@ from werkzeug.utils import secure_filename
 from flask import json as fJson
 import logging
 from logging.handlers import RotatingFileHandler
-from config import BaseConfig
+from config import BaseConfig, TestConfig
 import uuid
 import base64
 from flask_mail import Mail, Message
@@ -33,15 +33,7 @@ import unittest
 
 
 app = Flask(__name__, static_url_path='')
-mail=Mail(app)
 
-app.config['MAIL_SERVER']='smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'xxxxx@gmail.com'
-app.config['MAIL_PASSWORD'] = 'xxxxx'
-app.config['MAIL_USE_TLS'] = False
-app.config['MAIL_USE_SSL'] = True
-mail = Mail(app)
 app.config['UPLOAD_FOLDER'] = APP_STATIC_JSON
 
 app.debug_log_format = "[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s"
@@ -55,10 +47,16 @@ app.logger.info('Log message')
 login_log = app.logger
 
 app.secret_key = "some_secret"
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/GCT'
-app.config.from_object(BaseConfig)
+app.logger.info([os.environ['DEBUG'], "environ variable"])
+if eval(os.environ['DEBUG']):
+    app.logger.info("Im debug mode")
+    app.logger.info("If it is first time you are running create a db named `TestDB` manually")
+    app.config.from_object(TestConfig)
+    # app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost/TestDB'
+else:
+    app.logger.info("you can evaluate me")
 
-app.debug = True
+    app.config.from_object(BaseConfig)
 
 db = SQLAlchemy(app)
 
@@ -775,7 +773,9 @@ def send_video(path):
 def send_stylesheets(path):
     return send_from_directory('static/stylesheets', path)
 
-def add_first_response(email):
+def add_first_response(email=None):
+    if not email or email == "":
+        return False
     response = Response.query.filter_by(emailid=email).first()
     if response is None:
         try:
@@ -789,7 +789,9 @@ def add_first_response(email):
     return True
 
 def get_user_details(email):
-    return userDetails.query.filter_by(email=email).first()
+    user = userDetails.query.filter_by(email=email).first()
+    app.logger.info(user)
+    return user
 
 @app.route('/checklogin')
 @login_required
@@ -805,7 +807,9 @@ def checklogin(email=None):
     else:
         return render_template('register.html')
 
-def add_user_profile(name,email,phno,rollno,learningcenter):
+def add_user_profile(name=None,email=None,phno=None,rollno=None,learningcenter=None):
+    if name == None or name == "" or email == None or email == "" or phno == None or phno == "" or rollno == None or rollno == "":
+        return False
     userdetails = userDetails.query.filter_by(email=email).first()
     if not userdetails:
         try:
@@ -835,21 +839,32 @@ def savepersonaldata(email=None):
 def checkrandomizetable(email):
     return Randomize.query.filter_by(user1=email).all()
 
-def qidlisttodict(question_ids):
+def qidlisttodict(question_ids=None):
+    if question_ids == None:
+        return False
     qid_list={}
     for data in question_ids:
         qid_list[int(data.qno)] = data.serialno
     return qid_list
 
-def add_to_randomize(email,serialno,qno):
-    try:
-        r = Randomize(user1 = email, serialno = serialno, qno=qno)
-        db.session.add(r)
-        db.session.commit()
-    except Exception as e:
-        app.logger.error(e)
+def add_to_randomize(email=None,serialno=None,qno=None):
+    if email == None or email == "" or serialno == None or serialno == "" or qno == None or qno == "":
+        return False
+    userdetails = userDetails.query.filter_by(email=email).first()
+    if not userdetails:
+        try:
+            r = Randomize(user1 = email, serialno = serialno, qno=qno)
+            db.session.add(r)
+            db.session.commit()
+            return True
+        except Exception as e:
+            app.logger.error(e)
+    return False
 
-def setquizstatus(email):
+
+def setquizstatus(email=None):
+    if email == None:
+        return False
     td = TestDetails.query.filter_by(email=email).first()
     if td:
         if td.testend:
@@ -859,7 +874,9 @@ def setquizstatus(email):
     else:
         return 'START'
 
+#pending
 def buildquizobject(email,isRandomized,json_data):
+    app.logger.info(json_data)
     for key in json_data:
         if  key == "section":
             section = json_data[key]
@@ -879,9 +896,9 @@ def buildquizobject(email,isRandomized,json_data):
                                             q["responseTime"]=q1.responsetime
                                             q["status"]=q1.q_status
     json_data['quizStatus'] = setquizstatus(email)
+    app.logger.info(json_data)
     return json_data
     
-
 @app.route('/getquizstatus', methods=['POST'])
 @login_required
 def getquizstatus(email=None):
@@ -904,7 +921,9 @@ def getquizstatus(email=None):
     quiz_status_object = buildquizobject(email,isRandomized,json_data)
     return json.dumps(quiz_status_object)
 
-def addtestdetails(email,test,delays):
+def addtestdetails(email=None,test=None,delays=None):
+    if email == None or email == "" or test == None or test == "":
+        return False
     try:
         testdetails = TestDetails(email=email,test=test,delays=delays)
         db.session.add(testdetails)
@@ -914,6 +933,7 @@ def addtestdetails(email,test,delays):
         app.logger.error(e)
         return False
 
+#pending
 def updatetimeobj(td):
     duration = 60*60
     if not td.testend:
@@ -954,6 +974,7 @@ def testtime(email=None):
         
     return json.dumps(time_obj)
 
+#pending
 def getsubmittedresponse(email,request_data):
     vals = json.loads(cgi.escape(request_data))
     vals = vals['jsonData']
@@ -964,9 +985,10 @@ def getsubmittedresponse(email,request_data):
 
     return email,currentQuestion,submittedans,responsetime
 
-def storeresponse(email,currentQuestion,submittedans,responsetime,score=0):
+def storeresponse(email=None,currentQuestion=None,submittedans=None,responsetime=None,score=0):
+    if email == None or email == "":
+        return {u"status":"error" , u"q_status":None, u"validresponse":"false", u"qid":None}
     try:
-        app.logger.info("Entered into Store Response %s %s %s %s" %(email,currentQuestion,submittedans,responsetime))
         if submittedans == "skip":
             validresponse="true"
             q_status="skip"
@@ -1026,7 +1048,9 @@ def submitanswer(email=None):
 
     return json.dumps(responseobj)
 
-def getResultOfStudent(email):
+def getResultOfStudent(email=None):
+    if email == None or email == "":
+        return {"totalscore": 0, "question": []}
     totalscore = 0
     q1= Response.query.filter_by(emailid=email).order_by(Response.serialno, Response.time.desc()).all()
     questionresponses_dict = {}
@@ -1038,7 +1062,7 @@ def getResultOfStudent(email):
             if q.currentQuestion != s1 :
                 s1=q.currentQuestion
                 #totalscore=q.responsetime+q.q_score
-                question = {"user":session['user']['email'],"submittedans":q.submittedans, "q_score":q.q_score,"currentQuestion":s1,"responsetime":q.responsetime}
+                question = {"user":email,"submittedans":q.submittedans, "q_score":q.q_score,"currentQuestion":s1,"responsetime":q.responsetime}
                 question_records.append(question)
     questionresponses_dict["question"]=question_records
     questionresponses_dict["totalscore"]=totalscore
@@ -1084,6 +1108,7 @@ def getScore(email=None):
         }
     return render_template("testresult.html")
 
+#pending
 def getessayresponse(data):
     vals = json.loads(data.decode("utf-8"))
     vals = vals['jsonData']
@@ -1092,15 +1117,17 @@ def getessayresponse(data):
     qattemptedtime = vals['responsetime']
     return vals, qid, ans, qattemptedtime
 
-def saveessay(row,email,qid,ansText,qattemptedtime):
+def saveessay(row=None,email=None,qid=None,ansText=None,qattemptedtime=None):
+    if email == None or email == "" or row == None:
+        return False
     try:
         if row:
             row.qattemptedtime=qattemptedtime
-            row.ansText = ans
+            row.ansText = ansText
             db.session.add(row)
             db.session.commit()
         else:
-            data = EssayTypeResponse(useremailid=email, qid=qid, qattemptedtime=qattemptedtime, ansText = ans)
+            data = EssayTypeResponse(useremailid=email, qid=qid, qattemptedtime=qattemptedtime, ansText = ansText)
             db.session.add(data)
             db.session.commit()
         return True
@@ -1145,6 +1172,7 @@ def view_audio(link):
 
 # @app.route('/audio')
 # def audio():
+#pending
 def getendtestdata(request_data):
     try:
         val = request_data['jsonData']
@@ -1156,7 +1184,9 @@ def getendtestdata(request_data):
         return False
     return val, testend, score, spklink
 
-def getlearningcentre(email):
+def getlearningcentre(email=None):
+    if email == None or email == "":
+        return False
     try:
         userdata=userDetails.query.filter_by(email = email).first()
         learningcenter=userdata.learningcenter
@@ -1165,7 +1195,10 @@ def getlearningcentre(email):
         app.logger.info(e)
         return False
 
-def updatetestdetails(data,testend,score,learningcenter):
+#pending
+def updatetestdetails(data=None,testend=None,score=None,learningcenter=None):
+    if data == None:
+        return False
     try:
         data.testend = testend
         data.score = score
@@ -1177,12 +1210,6 @@ def updatetestdetails(data,testend,score,learningcenter):
         app.logger.info(e)
         return False
 
-def updatelearningcentre(email):
-    userdata = userDetails.query.filter_by(email=email).first()
-    if userdata:
-        return userdata.learningcenter
-    return ""
-
 @app.route('/endtest', methods=["POST"])
 @login_required
 def endtest(email=None):
@@ -1193,9 +1220,10 @@ def endtest(email=None):
     
     data1 = TestDetails.query.filter_by(email = email).first()
     if data1:
-        learningcenter = updatelearningcentre(email)
+        learningcenter = getlearningcentre(email)
+        if not learningcenter:
+            learningcenter = ""
         updatetestdetails(data1,testend,score,learningcenter)
-
 
 @app.route('/startquiz')
 @login_required
@@ -1204,7 +1232,6 @@ def startquiz():
 
 def generate_unique_code():
     return str(uuid.uuid1()).replace("-", "")
-
 
 def valid_user_login(email, password):
     user = Users.query.filter_by(emailid=email, password=hashlib.md5(password.encode('utf-8')).hexdigest()).first()
@@ -1233,7 +1260,9 @@ def makestatusbutton(email,hosted):
         button = "<a href='#' class='btn btn-sm btn-warning' disabled>Locked</a>"
     return button
 
-def gettestdetails(email, test_name):
+def gettestdetails(email=None, test_name=None):
+    if email==None or email=="" or test_name == None or test_name == "":
+        return []
     test_details = []
     result = Tests.query.filter_by(name=test_name).first()
     if result:
@@ -1288,9 +1317,10 @@ def verify_unique_code(email, code):
 def add_default_user_admin_if_not_exist():
     admin = Users.query.filter_by(user_type="admin").first()
     if admin is None:
-        add_user_if_not_exist("admin@quiz.in","admin","admin",True)
+        if add_user_if_not_exist("admin@quiz.in","admin","admin",True):
+            return True
+    return False
         
-
 def add_user_if_not_exist(email=None, password=generate_unique_code(), user_type="student", verified=False):
     user = Users.query.filter_by(emailid=email).first()
     if user is None:
@@ -1303,7 +1333,6 @@ def add_user_if_not_exist(email=None, password=generate_unique_code(), user_type
         except Exception as e:
             app.logger.error(e)
     return False
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -1980,28 +2009,32 @@ def getrecorder():
 # ==================================================
                     # UNIT Tests
 # ==================================================
-def assertFalse(input):
-    return False == input
 
-def assertTrue(input):
-    return True == input
-
-def assertEqual(input, input1):
-    return input1 == input
-
-def assertContains(input, input1):
-    return input in input1
-
-
-def test_handler(name, expected, actual):
+def test_handler(name, expected, actual, function):
     output = {"testcase_name":name, "result":None, "response":None}
     try:
-        if actual == expected:
-            result = "Pass"
-            response = "OK"
-        else:
-            result = "Fail"
-            response = "Expected %s got %s"%(expected, actual)
+        if function == "equal":
+            if actual == expected:
+                result = "Pass"
+                response = "OK"
+            else:
+                result = "Fail"
+                response = "Expected %s got %s"%(expected, actual)
+        if function == "contains":
+            if expected in actual:
+                result = "Pass"
+                response = "OK"
+            else:
+                result = "Fail"
+                response = "Expected %s got %s"%(expected, actual)
+        if function == "notNone":
+            if actual:
+                result = "Pass"
+                response = "OK"
+            else:
+                result = "Fail"
+                response = "Expected %s got %s"%(expected, actual)
+
     except Exception as e:
         response = e
         result = "Fail"
@@ -2018,16 +2051,17 @@ def datetime_handler(x):
 
 def test_get_test_responses_as_dict():
     output = {"function_name": inspect.stack()[0][3], "testcases":[]}
-    expected = {'128': {'Question_1_Score': 1, 'Question_5_Score': 0, 'Question_3_Time': datetime(2017, 7, 8, 7, 45, 47, 254924), 'Question_3': '104', 'Question_6': '201', 'Question_6_Score': 0, 'count': 7, 'Question_6_Submittedans': '#', 'Question_6_Time': datetime(2017, 7, 8, 7, 50, 7, 829351), 'Question_4_Status': 'submitted', 'Question_3_Status': 'submitted', 'Question_2_Score': 1, 'Question_3_Submittedans': 'False', 'name': 'Sreenath', 'Question_1_Status': 'submitted', 'Question_4_Time': datetime(2017, 7, 8, 7, 45, 48, 870909), 'Question_5': '106', 'rollno': '128', 'Question_5_Submittedans': 'Partly true', 'Question_2_Submittedans': 'By the Prime Minister of India in an unscheduled, real time, televised address to the nation', 'emailid': 'sirimala.sreenath@gmail.com', 'Question_2_Time': datetime(2017, 7, 8, 7, 45, 44, 958977), 'Question_5_Status': 'submitted', 'Question_1': '102', 'Question_1_Time': datetime(2017, 7, 8, 7, 45, 43, 599523), 'Question_6_Status': 'submitted', 'Question_1_Submittedans': 'All of the above', 'Question_2': '103', 'Question_5_Time': datetime(2017, 7, 8, 7, 45, 50, 917283), 'Question_2_Status': 'submitted', 'Question_1_Responsetime': 4.737, 'Question_5_Responsetime': 2.021, 'Question_3_Responsetime': 2.279, 'testctime': datetime(2017, 7, 8, 7, 45, 24, 463860), 'Question_3_Score': 0, 'Question_2_Responsetime': 1.317, 'Question_6_Responsetime': 257.088, 'Question_4': '105', 'Question_4_Score': 0, 'Question_4_Responsetime': 1.591, 'Question_4_Submittedans': 'None of these'}, '1234': {'Question_5_Score': 0, 'Question_3_Time': datetime(2017, 7, 8, 7, 41, 56, 276504), 'count': 9, 'Question_4_Status': 'submitted', 'Question_6_Time': datetime(2017, 7, 8, 7, 42, 4, 291266), 'Question_3_Submittedans': 'By the Prime Minister of India in an unscheduled, real time, televised address to the nation', 'Question_4_Submittedans': 'Not sure', 'Question_1_Status': 'submitted', 'rollno': '1234', 'Question_2_Submittedans': 'Maoist extremism', 'Question_7': '201', 'emailid': 'vy@fju.us', 'Question_5_Status': 'submitted', 'Question_3_Score': 1, 'Question_2': '102', 'Question_5_Time': datetime(2017, 7, 8, 7, 42, 2, 361560), 'Question_1_Responsetime': 3.99, 'Question_5_Responsetime': 1.768, 'Question_3': '103', 'Question_6_Submittedans': 'True', 'Question_2_Responsetime': 1.472, 'Question_7_Score': 0, 'Question_4_Responsetime': 4.249, 'Question_7_Status': 'submitted', 'Question_8_Score': 0, 'Question_1_Score': 0, 'Question_6_Score': 0, 'Question_8_Responsetime': 6.418, 'Question_6': '106', 'Question_7_Submittedans': '#', 'Question_1_Submittedans': '3.26 million people', 'Question_2_Score': 0, 'name': 'Veda', 'Question_7_Time': datetime(2017, 7, 8, 7, 42, 6, 512938), 'Question_4_Time': datetime(2017, 7, 8, 7, 42, 0, 559407), 'Question_5': '105', 'Question_5_Submittedans': 'Safety fee', 'Question_7_Responsetime': 2.181, 'Question_8': '1', 'Question_8_Submittedans': 'The answer to all the problems', 'Question_2_Time': datetime(2017, 7, 8, 7, 41, 54, 570905), 'Question_1': '101', 'Question_1_Time': datetime(2017, 7, 8, 7, 41, 53, 51284), 'Question_6_Status': 'submitted', 'Question_3_Status': 'submitted', 'Question_2_Status': 'submitted', 'Question_8_Time': datetime(2017, 7, 8, 7, 42, 12, 949458), 'Question_3_Responsetime': 1.668, 'testctime': datetime(2017, 7, 8, 7, 41, 47, 277874), 'Question_8_Status': 'submitted', 'Question_6_Responsetime': 1.89, 'Question_4': '104', 'Question_4_Score': 0}}
+    # expected = {'128': {'Question_1_Score': 1, 'Question_5_Score': 0, 'Question_3_Time': datetime(2017, 7, 8, 7, 45, 47, 254924), 'Question_3': '104', 'Question_6': '201', 'Question_6_Score': 0, 'count': 7, 'Question_6_Submittedans': '#', 'Question_6_Time': datetime(2017, 7, 8, 7, 50, 7, 829351), 'Question_4_Status': 'submitted', 'Question_3_Status': 'submitted', 'Question_2_Score': 1, 'Question_3_Submittedans': 'False', 'name': 'Sreenath', 'Question_1_Status': 'submitted', 'Question_4_Time': datetime(2017, 7, 8, 7, 45, 48, 870909), 'Question_5': '106', 'rollno': '128', 'Question_5_Submittedans': 'Partly true', 'Question_2_Submittedans': 'By the Prime Minister of India in an unscheduled, real time, televised address to the nation', 'emailid': 'sirimala.sreenath@gmail.com', 'Question_2_Time': datetime(2017, 7, 8, 7, 45, 44, 958977), 'Question_5_Status': 'submitted', 'Question_1': '102', 'Question_1_Time': datetime(2017, 7, 8, 7, 45, 43, 599523), 'Question_6_Status': 'submitted', 'Question_1_Submittedans': 'All of the above', 'Question_2': '103', 'Question_5_Time': datetime(2017, 7, 8, 7, 45, 50, 917283), 'Question_2_Status': 'submitted', 'Question_1_Responsetime': 4.737, 'Question_5_Responsetime': 2.021, 'Question_3_Responsetime': 2.279, 'testctime': datetime(2017, 7, 8, 7, 45, 24, 463860), 'Question_3_Score': 0, 'Question_2_Responsetime': 1.317, 'Question_6_Responsetime': 257.088, 'Question_4': '105', 'Question_4_Score': 0, 'Question_4_Responsetime': 1.591, 'Question_4_Submittedans': 'None of these'}, '1234': {'Question_5_Score': 0, 'Question_3_Time': datetime(2017, 7, 8, 7, 41, 56, 276504), 'count': 9, 'Question_4_Status': 'submitted', 'Question_6_Time': datetime(2017, 7, 8, 7, 42, 4, 291266), 'Question_3_Submittedans': 'By the Prime Minister of India in an unscheduled, real time, televised address to the nation', 'Question_4_Submittedans': 'Not sure', 'Question_1_Status': 'submitted', 'rollno': '1234', 'Question_2_Submittedans': 'Maoist extremism', 'Question_7': '201', 'emailid': 'vy@fju.us', 'Question_5_Status': 'submitted', 'Question_3_Score': 1, 'Question_2': '102', 'Question_5_Time': datetime(2017, 7, 8, 7, 42, 2, 361560), 'Question_1_Responsetime': 3.99, 'Question_5_Responsetime': 1.768, 'Question_3': '103', 'Question_6_Submittedans': 'True', 'Question_2_Responsetime': 1.472, 'Question_7_Score': 0, 'Question_4_Responsetime': 4.249, 'Question_7_Status': 'submitted', 'Question_8_Score': 0, 'Question_1_Score': 0, 'Question_6_Score': 0, 'Question_8_Responsetime': 6.418, 'Question_6': '106', 'Question_7_Submittedans': '#', 'Question_1_Submittedans': '3.26 million people', 'Question_2_Score': 0, 'name': 'Veda', 'Question_7_Time': datetime(2017, 7, 8, 7, 42, 6, 512938), 'Question_4_Time': datetime(2017, 7, 8, 7, 42, 0, 559407), 'Question_5': '105', 'Question_5_Submittedans': 'Safety fee', 'Question_7_Responsetime': 2.181, 'Question_8': '1', 'Question_8_Submittedans': 'The answer to all the problems', 'Question_2_Time': datetime(2017, 7, 8, 7, 41, 54, 570905), 'Question_1': '101', 'Question_1_Time': datetime(2017, 7, 8, 7, 41, 53, 51284), 'Question_6_Status': 'submitted', 'Question_3_Status': 'submitted', 'Question_2_Status': 'submitted', 'Question_8_Time': datetime(2017, 7, 8, 7, 42, 12, 949458), 'Question_3_Responsetime': 1.668, 'testctime': datetime(2017, 7, 8, 7, 41, 47, 277874), 'Question_8_Status': 'submitted', 'Question_6_Responsetime': 1.89, 'Question_4': '104', 'Question_4_Score': 0}}
+    expected = {}
     testcases = [
-        ("test1", expected, get_test_responses_as_dict(None)),
-        ("test2",expected,get_test_responses_as_dict(12)),
-        ("test3",expected,get_test_responses_as_dict("12")),
-        ("test4",expected,get_test_responses_as_dict(16)),
-        ("test5",expected,get_test_responses_as_dict(122))
+        ("test1", expected, get_test_responses_as_dict(None), "equal"),
+        ("test2",expected,get_test_responses_as_dict(12), "equal"),
+        ("test3",expected,get_test_responses_as_dict("12"), "equal"),
+        ("test4",expected,get_test_responses_as_dict(16), "equal"),
+        ("test5",expected,get_test_responses_as_dict(122), "equal")
     ]
     for testcase in testcases:
-        testcase_output = test_handler(testcase[0], testcase[1], testcase[2])
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
         # app.logger.info(testcase_output)
         output['testcases'].append(testcase_output)
     # app.logger.info(output)
@@ -2036,37 +2070,377 @@ def test_get_test_responses_as_dict():
 def test_add_user_if_not_exist():
     
     output = {"function_name": inspect.stack()[0][3], "testcases":[]}
-    Users.query.filter_by(emailid="sirimala.sreenath@gmail.com").delete()
+    existed = Users.query.filter_by(emailid="sirimala.sreenath@gmail.com").all()
+    for exist in existed:
+        db.session.delete(exist)
+    db.session.commit()
     testcases = [
-        ("test1", True, add_user_if_not_exist(email="sirimala.sreenath@gmail.com", password="generate_unique_code")),
-        ("test2",False, add_user_if_not_exist(email="sirimala.sreenath@gmail.com", password="generate_unique_code")),
-        ("test3",False, add_user_if_not_exist(email="sirimala.sreenath@gmail.com", password="generate_unique_code")),
+        ("test1", not None, add_user_if_not_exist(email="sirimala.sreenath@gmail.com", password="generate_unique_code"), "notNone"),
+        ("test2",False, add_user_if_not_exist(email="sirimala.sreenath@gmail.com", password="generate_unique_code"), "equal"),
+        ("test3",False, add_user_if_not_exist(email="sirimala.sreenath@gmail.com", password="generate_unique_code"), "equal"),
     ]
     
     for testcase in testcases:
-        testcase_output = test_handler(testcase[0], testcase[1], testcase[2])
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        # app.logger.info(testcase_output)
+        output['testcases'].append(testcase_output)
+    app.logger.info(output)
+    existed = Users.query.filter_by(emailid="sirimala.sreenath@gmail.com").all()
+    for exist in existed:
+        db.session.delete(exist)
+    db.session.commit()
+    return output
+
+def test_allowed_to_take_test():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", False, allowed_to_take_test("", ""), "equal"),
+        ("test2",False, allowed_to_take_test("", "sirimala.sreenath@gmail.com"), "equal"),
+        ("test3",True, allowed_to_take_test("English Literacy Test", "sirimala.sreenath@gmail.com"), "equal"),
+    ]
+    
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
         # app.logger.info(testcase_output)
         output['testcases'].append(testcase_output)
     app.logger.info(output)
     return output
-def test_allowed_to_take_test():
+
+def test_add_first_response():
     output = {"function_name": inspect.stack()[0][3], "testcases":[]}
     testcases = [
-        ("test1", False, allowed_to_take_test("", "")),
-        ("test2",False, allowed_to_take_test("", "sirimala.sreenath@gmail.com")),
-        ("test3",True, allowed_to_take_test("English Literacy Test", "sirimala.sreenath@gmail.com")),
+        ("test1", False, add_first_response(""), "equal"),
+        ("test1", False, add_first_response(), "equal"),
+        ("test2",True, add_first_response("sirimala.sreenath@gmail.com"), "equal"),
+        ("test3",False, add_first_response("sirimala.sreenath@gmail.com"), "equal"),
     ]
     
     for testcase in testcases:
-        testcase_output = test_handler(testcase[0], testcase[1], testcase[2])
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
         # app.logger.info(testcase_output)
         output['testcases'].append(testcase_output)
     app.logger.info(output)
+    existed = Response.query.filter_by(emailid="sirimala.sreenath@gmail.com").all()
+    for exist in existed:
+        db.session.delete(exist)
+    db.session.commit()
+    return output
+
+def test_add_user_profile():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", True, add_user_profile("Veda","vy@fju.us",8686093417,1234,"Basara"), "equal"),
+        ("test1", False, add_user_profile(), "equal"),
+        ("test2",False, add_user_profile("","","","",""), "equal"),
+    ]
+    
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        # app.logger.info(testcase_output)
+        output['testcases'].append(testcase_output)
+    app.logger.info(output)
+    existed = userDetails.query.filter_by(email="vy@fju.us").all()
+    for exist in existed:
+        db.session.delete(exist)
+    db.session.commit()
+    return output
+
+def test_qidlisttodict():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", type({}), type(qidlisttodict(checkrandomizetable("vy@fju.us"))), "equal"),
+        ("test1", len(checkrandomizetable("vy@fju.us")), len(qidlisttodict(checkrandomizetable("vy@fju.us"))), "equal"),
+        ("test2", False, qidlisttodict(None), "equal"),
+    ]
+    
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_add_to_randomize():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", True, add_to_randomize("vy@fju.us",1,101), "equal"),
+        ("test1", False, add_to_randomize(), "equal"),
+        ("test2",False, add_to_randomize("","",""), "equal"),
+    ]
+    
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        # app.logger.info(testcase_output)
+        output['testcases'].append(testcase_output)
+    app.logger.info(output)
+    existed = Randomize.query.filter_by(user1="vy@fju.us").all()
+    for exist in existed:
+        db.session.delete(exist)
+    db.session.commit()
+    return output
+
+def test_setquizstatus():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    existed = TestDetails.query.filter_by(email="vy@fju.us").first()
+    if not existed:
+        td = TestDetails(email="vy@fju.us",testend=True)
+        db.session.add(td)
+        db.session.commit()
+    testcases = [
+        ("test1", "INPROGRESS", setquizstatus("vy@fju.us"), "equal"),
+        ("test1", False, setquizstatus(), "equal"),
+        ("test2","START", setquizstatus(""), "equal"),
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    if existed:
+        db.session.delete(existed)
+        db.session.commit()
+    return output
+
+def test_addtestdetails():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", True, addtestdetails("vy@fju.us",True,0.5), "equal"),
+        ("test2", False, addtestdetails(), "equal"),
+        ("test3",False, addtestdetails("","",0.0), "equal"),
+    ]
+    
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    existed = TestDetails.query.filter_by(email="vy@fju.us").all()
+    for exist in existed:
+        db.session.delete(exist)
+    db.session.commit()
+    return output
+
+def test_storeresponse():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    expected = {u"status":"success" , u"q_status":"skip", u"validresponse":"true", u"qid":101}
+    expected2 = {u"status":"success" , u"q_status":"submitted", u"validresponse":"true", u"qid":102}
+    expected3 = {u"status":"error" , u"q_status":None, u"validresponse":"false", u"qid":None}
+    testcases = [
+        ("test1", expected, storeresponse("vy@fju.us",101,"skip",1.254), "equal"),
+        ("test2", expected2, storeresponse("vy@fju.us",102,"submitted",1.26), "equal"),
+        ("test3", expected3, storeresponse(), "equal"),
+        ("test4", expected3, storeresponse("","","",""), "equal")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        # app.logger.info(testcase_output)
+        output['testcases'].append(testcase_output)
+    existed = Response.query.filter_by(emailid="vy@fju.us").all()
+    for exist in existed:
+        db.session.delete(exist)
+    db.session.commit()
+    return output
+
+def test_getResultOfStudent():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    giveninput = getResultOfStudent("vy@fju.us")
+    expected = {"totalscore": 0, "question": []}
+    storeresponse("vy@fju.us",101,"submitted",1.26)
+    storeresponse("vy@fju.us",102,"skip",1.80)
+    giveninput2 = getResultOfStudent("vy@fju.us")
+    expected2 = {"question": [{"responsetime": 1.26, "q_score": 0, "submittedans": "submitted", "user": "vy@fju.us", "currentQuestion": "101"}, {"responsetime": 1.8, "q_score": 0, "submittedans": "skip", "user": "vy@fju.us", "currentQuestion": "102"}], "totalscore": 0}
+    giveninput3 = getResultOfStudent()
+    testcases = [
+        ("test1", expected, giveninput, "equal"),
+        ("test2", expected2, giveninput2, "equal"),
+        ("test3", expected, giveninput3, "equal"),
+        ("test4", expected, getResultOfStudent(""), "equal"),
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        # app.logger.info(testcase_output)
+        output['testcases'].append(testcase_output)
+    # app.logger.info(output)
+    existed = Response.query.filter_by(emailid="vy@fju.us").all()
+    for exist in existed:
+        db.session.delete(exist)
+    db.session.commit()
+    return output
+
+def test_saveessay():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    row = EssayTypeResponse.query.filter_by(useremailid = "vy@fju.us", qid = "201").first()
+    giveninput = saveessay(row,"vy@fju.us","201","This is a test paragraph",3.5789)
+    giveninput2 = saveessay(row,"vy@fju.us","201","This is a test paragraph2",3.5789)
+    testcases = [
+        ("test1", True, giveninput, "equal"),
+        ("test2", True, giveninput, "equal"),
+        ("test3", False, saveessay(), "equal"),
+        ("test4", False, saveessay(row,"","","",0.0), "equal")
+
+    ]
+    
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    existed = EssayTypeResponse.query.filter_by(useremailid="vy@fju.us").all()
+    for exist in existed:
+        db.session.delete(exist)
+    db.session.commit()
+    return output
+
+def test_getlearningcentre():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    add_user_profile("Veda","vy@fju.us",8686093417,1234,"Basara")
+    testcases = [
+        ("test1", "Basara", getlearningcentre("vy@fju.us"), "equal"),
+        ("test2", False, getlearningcentre(), "equal"),
+        ("test3",False, getlearningcentre(""), "equal"),
+    ]
+    
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    existed = userDetails.query.filter_by(email="vy@fju.us").all()
+    for exist in existed:
+        db.session.delete(exist)
+    db.session.commit()
+    return output
+
+def test_generate_unique_code():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", False, generate_unique_code()==generate_unique_code(), "equal")
+    ]
+    
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_valid_user_login():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    existed = Users.query.filter_by(emailid="vy@fju.us").all()
+    if not existed:
+        user = Users("vy@fju.us","","student",True)
+        db.session.add(user)
+        db.session.commit()
+        update_password(user,"veda1997")
+    testcases = [
+        ("test1", True, valid_user_login("vy@fju.us",hashlib.md5("veda1997".encode('utf-8')).hexdigest()), "equal")
+    ]
+    
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    for exist in existed:
+        db.session.delete(exist)
+    db.session.commit()
+    return output
+
+def test_makestatusbutton():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    input1 = makestatusbutton("vy@fju.us",True)
+    existed = TestDetails.query.filter_by(email="vy@fju.us").first()
+    if not existed:
+        td = TestDetails(email="vy@fju.us",testend=False)
+        db.session.add(td)
+        db.session.commit()
+    input2 = makestatusbutton("vy@fju.us",True)
+    testcases = [
+        ("test1", "<a href='#' class='btn btn-sm btn-warning' disabled>Locked</a>", makestatusbutton("vy@fju.us",False), "equal"),
+        ("test2", "<a href='/quiz' class='btn btn-sm btn-primary'>Attempt Test</a>", input1, "equal"),
+        ("test3", "<a href='/quiz' class='btn btn-sm btn-warning'>In Progress!</a>", input2, "equal"),
+    ]
+    
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    if existed:
+        db.session.delete(existed)
+        db.session.commit()
+    return output
+
+def test_gettestdetails():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    existed = Tests.query.filter_by(name="English Literacy Test").first()
+    if existed:
+        db.session.delete(existed)
+        db.session.commit()
+    input1 = gettestdetails("vy@fju.us","English Literacy Test")
+    expected = []
+    td = Tests("English Literacy Test","vy@fju.us",'06-07-2017 15:30', '02-08-2017 12:00')
+    db.session.add(td)
+    db.session.commit()
+    input2 = gettestdetails("vy@fju.us","English Literacy Test")
+    testcases = [
+        ("test1", expected, input1, "equal"),
+        ("test2", "['English Literacy Test', '06-07-2017 15:30', '02-08-2017 12:00', \"<a href='/quiz' class='btn btn-sm btn-warning'>In Progress!</a>\"]", input2, "equal"),
+    ]
+    
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_add_default_user_admin_if_not_exist():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", False, add_default_user_admin_if_not_exist(), "equal"),
+        ("test2", False, add_default_user_admin_if_not_exist(), "equal"),
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+def test_sendMail():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    testcases = [
+        ("test1", True, sendMail("UnitTesting","UnitTesting","vy@fju.us"), "equal"),
+        ("test2", True, sendMail(), "equal")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
+    return output
+
+update_password
+def test_update_password():
+    output = {"function_name": inspect.stack()[0][3], "testcases":[]}
+    user = Users.query.filter_by(emailid="vy@fju.us").all()
+    if not user:
+        user = Users("vy@fju.us","","student",True)
+        db.session.add(user)
+        db.session.commit()
+    input1 = update_password(user,"veda1997")
+    input2 = update_password(user,"veda1996")
+    testcases = [
+        ("test1", True, input1, "equal"),
+        ("test2", True, input2, "equal")
+    ]
+    for testcase in testcases:
+        testcase_output = test_handler(testcase[0], testcase[1], testcase[2], testcase[3])
+        output['testcases'].append(testcase_output)
     return output
 
 @app.route('/unit_test')
 def unit_test():
-    # return render_template("unit_tests.html", tests = [])
-    return render_template("unit_tests.html", tests = [test_add_user_if_not_exist(), test_get_test_responses_as_dict(), test_allowed_to_take_test()])
-    # return render_template("unit_tests.html", tests = [])
-
+    if eval(os.environ['DEBUG']):
+        return render_template("unit_tests.html", tests = [
+            test_add_user_if_not_exist(),
+            test_get_test_responses_as_dict(),
+            test_allowed_to_take_test(),
+            test_add_user_profile(),
+            test_qidlisttodict(),
+            test_add_to_randomize(),
+            test_setquizstatus(),
+            test_addtestdetails(),
+            test_storeresponse(),
+            test_getResultOfStudent(),
+            test_saveessay(),
+            test_getlearningcentre(),
+            test_generate_unique_code(),
+            test_valid_user_login(),
+            test_makestatusbutton(),
+            test_gettestdetails(),
+            test_add_default_user_admin_if_not_exist(),
+            test_sendMail(),
+            test_update_password(),
+        ])
+    else:
+        return redirect("/")
