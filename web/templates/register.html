@@ -21,12 +21,12 @@
 	      		alert("Please enter a name");
 	      		return false;
 	    	}
-	    	var learningcenter=document.getElementById("learningcenter").value;
-	    	console.log(learningcenter);
-	    	if(learningcenter==""){
-	    		alert("Please Select Learning Center");
-	    		return false;
-	    	}
+	    	// var learningcenter=document.getElementById("learningcenter").value;
+	    	// console.log(learningcenter);
+	    	// if(learningcenter==""){
+	    	// 	alert("Please Select Learning Center");
+	    	// 	return false;
+	    	// }
 	    	var phoneValue = document.getElementById("phone").value; // second field
 	    	if (phoneValue.length!=10) { // your first option does not have a value 
 	      		alert("Please give a valid phone number");
@@ -92,7 +92,7 @@
 						</div>
 						<div class="form-group">
 							<label for="exampleInputEmail1">Roll No</label>
-							<input id="rollno" name="rollno" type="number" class="form-control"  placeholder="Roll no.">
+							<input id="rollno" name="rollno" type="text" class="form-control"  placeholder="Roll no.">
 						</div>
 						<!-- <div class="form-group">
 							<label for="exampleInputAddress">Address:</label>
@@ -107,9 +107,10 @@
 						<div class="form-group">
 							<input id="pincode" name="pincode" type="text" class="form-control" placeholder="PIN Code">
 						</div> -->
-						<div class="form-group">
+						<div class="form-group hidden">
 							<label>Learning Center:</label>
 							<select id="learningcenter" name="learningcenter" class="form-control">
+								<option value="" selected></option>
 								<option value="Basara">Basara</option>
 								<option value="Nuzvid">Nuzvid</option>
 								<option value="RK Valley">RK Valley</option>

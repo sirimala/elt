@@ -2,12 +2,12 @@
     "name": "E3: Speaking",
     "questions": [
         {
-            "question": "Watch: What additional benefits of demonetization do you perceive? Give a detailed explanation of at least one. Do not include the benefits already discussed.<br><div id='recorder'></div>",
+            "question": "Listen To: <br><audio controls> <source src=\"json/audio1.mp3\" type=\"audio/mp3\"> Your browser does not support the audio tag. </audio><br><br>What additional benefits of demonetization do you perceive? Give a detailed explanation of at least one. Do not include the benefits already discussed.<br><div id='recorder'></div>",
             "options": [],
             "id": "201"
         },
         {
-            "question": "Watch: Based on the audio you’ve just listened to, how accurate do you think is the speaker? Give your opinion on one issue.<br><div id='recorder'></div>",
+            "question": "Listen To: <br><audio controls> <source src=\"json/audio2.mp3\" type=\"audio/mp3\"> Your browser does not support the audio tag. </audio><br><br>Based on the audio you’ve just listened to, how accurate do you think is the speaker? Give your opinion on one issue.<br><div id='recorder'></div>",
             "options": [],
             "id": "202"
         }

@@ -21,10 +21,10 @@
 		<div class="col-md-6 col-sm-12 panel" style="background: #eee; padding-left: 3%; padding-right: 3%">
 			<br><h3>Edit Test</h3>
 			<hr style="border-top: 1px solid black">
-			<h4>Test ID: {{session.TestID}}</h4><br>
+			<h4>Test ID: {{testid}}</h4><br>
 			<!-- <h4>Hosting Date: {{session.hosting_date}}</h4> -->
 			<!-- <h4>Add Students</h4> -->
-			<form method="post" action="/edit" enctype=multipart/form-data>
+			<form method="post" action="/edit/{{testid}}" enctype=multipart/form-data>
 			  <!-- <div class="form-group">
 			    <label for="datepicker">Test Hosting Date</label>
 			    <input type="text" class="form-control" id="datepicker" name="datepicker" placeholder="Pick a Valid Date">
@@ -59,17 +59,17 @@
 			</form>
 		</div>
 		<div class="col-md-6 col-sm-12" style="background: white">
-			{% if session["messages"] %}
+			{% if messages %}
 				<br><h3>Result</h3>
 				<hr style="border-top: 1px solid black">
-				{% if session["datevalid"] %}
-					<p class="panel panel-success">{{session["datevalid"]}}</p>
+				{% if datevalid %}
+					<p class="panel panel-success">{{datevalid}}</p>
 				{% else %}
-					<p class="panel panel-danger">{{session["startdatevalid"]}}</p>
-					<p class="panel panel-danger">{{session["enddatevalid"]}}</p>
+					<p class="panel panel-danger">{{startdatevalid}}</p>
+					<p class="panel panel-danger">{{enddatevalid}}</p>
 				{% endif %}
-				<h4>{{session['students']|length}} students added.</h4>
-				{% for student in session['students'] %}
+				<h4>Added Students:</h4>
+				{% for student in students %}
 					<p class="panel panel-success">{{student}}</p>
 				{% endfor %}
 			{% endif %}
@@ -106,8 +106,11 @@
     });
 
  	//prefil form
- 	$.get( "/prefiledit/{{session['TestID']}}", function( data ) {
-   		data = JSON.parse(data);
+ 	$.get( "/prefiledit/{{testid}}", function( data ) {
+   		if (data)
+   			data = JSON.parse(data);
+   		else
+   			location.href="/admin"
    		// $("#datetimepicker1").on("dp.change", function (e) {
    		// 	$('#datetimepicker1').data("DateTimePicker").date(data['start_date']);
      //        $('#datetimepicker2').data("DateTimePicker").minDate(e.date);
@@ -123,7 +126,7 @@
 	   		var dom = `<div class="input-group">
       <input type="text" class="form-control" value="`+val+`" disabled>
       <span class="input-group-btn">
-        <a href="/uninvite/`+val+`" class="btn btn-sm btn-danger" type="button">X</a>
+        <a href="/uninvite/`+val+`/{{testid}}" class="btn btn-sm btn-danger" type="button">X</a>
       </span>
     </div>`
 	   		$("#existingstudentslist").append(dom);

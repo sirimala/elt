@@ -83,7 +83,7 @@ var feedbackView={
 						this.progressbox.append('<br>' + q.answer + '<br>');
 					}
 					else{
-						this.progressbox.append('<br><div><image src="static/arrow_r.png" width="55" height="25"> The highlighted text in the passage is the pointer to the correct option.<br><br><b>Following is the text from the passage that indicates the answer for the given question:</b><br><image src="static/bullet_h.png" width="25",height="10">' + q.answer + '<br></div>');
+						this.progressbox.append('<br><div><image src="img/arrow_r.png" width="55" height="25"> The highlighted text in the passage is the pointer to the correct option.<br><br><b>Following is the text from the passage that indicates the answer for the given question:</b><br><image src="img/bullet_h.png" width="25",height="10">' + q.answer + '<br></div>');
 					}
 				}
 				else{

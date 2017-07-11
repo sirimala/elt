@@ -86,20 +86,20 @@
 		</div>
 	</div>
 	<div class="modal fade" id="NotifyMailResponses" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                 <h4 class="modal-title" id="myModalLabel">Modal title</h4>
+                 <h4 class="modal-title" id="myModalLabel">Notification Emails Status</h4>
 
             </div>
             <div class="modal-body">
             	<table class="table">
             		<thead>
             			<tr>
-            				<th>Mail</th>	
-            				<th>Code</th>	
-            				<th>Message</th>	
+            				<th>Email</th>		
+	   						<th>Status</th>
+	   						<th>Tracking ID</th>	
             			</tr>
             		</thead>
             		<tbody>
@@ -114,29 +114,35 @@
 </div>
 <script type="text/javascript">
 $(document).ready(function() {
+	String.prototype.format = function () {
+        var args = [].slice.call(arguments);
+        return this.replace(/(\{\d+\})/g, function (a){
+            return args[+(a.substr(1,a.length-2))||0];
+        });
+	};
 	$('#usertable tbody').on( 'click', 'tr td a', function (){
 	   url = $(this).attr("name");
 	  
-	   $.get( url, function( data ) {
+	   var request = $.get( url, function( data ) {
 	   		data = JSON.parse(data);
 	   		$.each(data, function(index,jsonObject){
 	   			$(".modal-body table tbody").html("");
 	   			tr = "<tr>";
-	   			tr += "<td>"+jsonObject['mail']+"</td>"
-	   			tr += "<td>"+jsonObject['status_code']+"</td>"
-	   			tr += "<td>"+jsonObject['status_message']+"</td>"
-			    // $.each(jsonObject, function(key,val){
-			    	
-			    //     console.log("key : "+key+" ; value : "+val);
-			    //     tr += "<td>"+val+"</td>"
-			       
-			    // });
+	   			tr += "<td>"+jsonObject['mail']+"</td>";
+	   			tr += "<td>"+jQuery.parseJSON(jsonObject['status_message']).message+"</td>";
+	   			tr += "<td>"+jQuery.parseJSON(jsonObject['status_message']).id+"</td>";
 	   			tr += "</tr>";
-
 		 		$(".modal-body table tbody").append(tr);
+			    // console.log(jsonObject['status_message']);
 			});
 		});
-
+	   request.error(function(jqXHR, textStatus, errorThrown) {
+		  if (textStatus == 'timeout')
+	   		$(".modal-body table tbody").html("The server is not responding. Please check your Internet Connection.");
+		  if (textStatus == 'error')
+	   		$(".modal-body table tbody").html("Something went wrong. Please check your Internet Connection.");
+	   		console.log(errorThrown);
+		});
 	});
 });	
 </script>

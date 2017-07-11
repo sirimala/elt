@@ -4,7 +4,7 @@
     "note": "Listen to the video given and answer the following questions:",
     "videoArray": [
         {
-            "link": "<div class=\"embed-responsive embed-responsive-4by3\"><iframe class=\"embed-responsive-item\" src=\"https://www.youtube.com/embed/-eiBdRv_ghI\" frameborder=\"0\" allowfullscreen></iframe></div>",
+            "link": "<div><audio controls> <source src=\"json/audio1.mp3\" type=\"audio/mp3\"> Your browser does not support the audio tag. </audio></div>",
             "questions": [
                 {
                     "question": "The bold decision of Demonetization affects",
@@ -99,7 +99,7 @@
             ]
         },
         {
-            "link": "<div class=\"embed-responsive embed-responsive-4by3\"><iframe class=\"embed-responsive-item\" src=\"https://www.youtube.com/embed/-eiBdRv_ghI\" frameborder=\"0\" allowfullscreen></iframe></div>",
+            "link": "<div><audio controls> <source src=\"json/audio2.mp3\" type=\"audio/mp3\"> Your browser does not support the audio tag. </audio></div>",
             "questions": [
                 {
                     "question": "Good, transparent governance needs",

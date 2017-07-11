@@ -30,6 +30,7 @@ import io
 import csv
 import inspect
 import unittest
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
 app = Flask(__name__, static_url_path='')
@@ -391,25 +392,12 @@ class Response(db.Model):
     time = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow )
     currentQuestion=db.Column(db.String(120))
     serialno=db.Column(db.Integer)
+    q_section = db.Column(db.String(120))
 
     def __init__(self, **kwargs):
         super(Response, self).__init__(**kwargs)
 
-    # def __repr__(self):
-    #     return str({
-    #                 "id":self.id,
-    #                 "name": self.name,
-    #                 "emailid": self.emailid,
-    #                 "pin": self.pin,
-    #                 "testctime": self.testctime,
-    #                 "submittedans": self.submittedans,
-    #                 "responsetime": self.responsetime,
-    #                 "q_score": self.q_score,
-    #                 "q_status": self.q_status,
-    #                 "time": self.time,
-    #                 "currentQuestion": self.currentQuestion,
-    #                 "serialno": self.serialno
-    #                 })
+ 
 class Randomize(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user1=db.Column(db.String(120))
@@ -615,32 +603,14 @@ def error(error):
 
 @app.route('/test', methods=['GET', 'POST'])
 def test():
-    if request.method == 'POST':
-        app.logger.debug('in testing')
-        # files = request.files.getlist('file')
-        data = request.files['file'].read()
-        # data = files[0].file.read()
-        # app.logger.info(data)
-        test = TestAudio(data)
-        db.session.add(test)
-        db.session.commit()
-        # test = TestAudio.query.first()
-        # app.logger.info([type(test.blob1), dir(test.blob1)])
-        # return test.blob1
-        return app.response_class(base64.b64encode(test.blob1), mimetype="audio/webm")
-        # return app.response_class(test.blob1, mimetype='application/octet-stream')
-    else:
-        # return str(datetime.now())
-        return '''
-    <!doctype html>
-    <title>Upload new File</title>
-    <h1>Upload new File</h1>
-    <form action="/test" method=post enctype=multipart/form-data>
-      <p><input type=file name=file>
-         <input type=submit value=Upload>
-    </form>
-    '''
+    # response = sendNotifyMail()
+    # res = Response(serialno="123",emailid="email",name="email",currentQuestion=str("123"),submittedans="submittedans",responsetime=1.2,q_status="tre",q_score=1)
+    # db.session.add(res)
+    # app.logger.info(["result object", res, res.get_q_section])
+    # res = db.session.query(Response).filter_by(get_q_section="Reading")
+    # app.logger.info(["result object", res, res.get_q_section])
 
+    return "testing...."
 def store_audio(user, blob):
     try:
         useraudio = UserAudio(user=user, blob1=blob)
@@ -733,15 +703,15 @@ def allowed_to_take_test(testid=None, email=None, role=None):
         return True
     return False
 
-@app.route('/quiz')
+@app.route('/quiz/<testid>')
 @login_required
-def quiz(email=None):
+def quiz(email=None, testid=None):
     # return render_template('index.html')
     role = get_role_from_session()
     email = email if email else get_email_from_session()
     if not role:
         return "Your account still not activated, Please come here after activation of your account."
-    if allowed_to_take_test("English Literacy Test", email, role):
+    if allowed_to_take_test(testid, email, role):
         # return render_template('index.html')
         if len(TestDetails.query.filter_by(email=email).all()) != 0:
             return redirect("/checklogin")
@@ -829,7 +799,8 @@ def savepersonaldata(email=None):
     email = email if email else get_email_from_session()
     phno=request.form['phone']
     rollno=request.form['rollno']
-    learningcenter=request.form['learningcenter']
+    # learningcenter=request.form['learningcenter']
+    learningcenter=""
 
     addprofile = add_user_profile(name,email,phno,rollno,learningcenter)
     if not addprofile:
@@ -973,6 +944,12 @@ def testtime(email=None):
         
     return json.dumps(time_obj)
 
+def convert_to_minutes(responsetime):
+    number_of_seconds = responsetime
+    minutes = time.strftime("%M:%S", time.gmtime(number_of_seconds))
+    app.logger.info(minutes)
+    return minutes
+
 #pending
 def getsubmittedresponse(email,request_data):
     vals = json.loads(cgi.escape(request_data))
@@ -984,6 +961,17 @@ def getsubmittedresponse(email,request_data):
 
     return email,currentQuestion,submittedans,responsetime
 
+def get_q_section(currentQuestion):
+    if currentQuestion in range(e1_start,e1_end):
+        return "Reading"
+    elif currentQuestion in range(e2_start,e2_end):
+        return "Listening"
+    elif currentQuestion in range(e3_start,e3_end):
+        return "Speaking"
+    elif currentQuestion in range(e4_start,e4_end):
+        return "Writing"
+    else:
+        return None
 def storeresponse(email=None,currentQuestion=None,submittedans=None,responsetime=None,score=0):
     if email == None or email == "":
         return {u"status":"error" , u"q_status":None, u"validresponse":"false", u"qid":None}
@@ -992,7 +980,7 @@ def storeresponse(email=None,currentQuestion=None,submittedans=None,responsetime
             validresponse="true"
             q_status="skip"
         
-        elif currentQuestion in range(e3_start,e3_end):
+        if currentQuestion in range(e3_start,e3_end):
             r=UserAudio.query.filter_by(user=email).first()
             if r :
                 q_status="submitted"
@@ -1002,7 +990,7 @@ def storeresponse(email=None,currentQuestion=None,submittedans=None,responsetime
                 q_status="submitted"
                 status="success"
                 validresponse="true"
-        elif currentQuestion in range(e4_start,e4_end):
+        if currentQuestion in range(e4_start,e4_end):
             q_status="submitted"
             status="success"
             validresponse="true"
@@ -1019,8 +1007,8 @@ def storeresponse(email=None,currentQuestion=None,submittedans=None,responsetime
                 q_status="submitted"
         else:
             status="error"
-
-        data=Response(serialno=currentQuestion,emailid=email,name=email,currentQuestion=str(currentQuestion),submittedans=submittedans,responsetime=responsetime,q_status=q_status,q_score=score)
+        q_section = get_q_section(currentQuestion)
+        data=Response(q_section=q_section, serialno=currentQuestion,emailid=email,name=email,currentQuestion=str(currentQuestion),submittedans=submittedans,responsetime=responsetime,q_status=q_status,q_score=score)
         db.session.add(data)
         db.session.commit()
         status="success"
@@ -1246,16 +1234,16 @@ def student():
     if request.method == "GET":
         return render_template('student.html')
 
-def makestatusbutton(email,hosted):
+def makestatusbutton(email,hosted, testid):
     if hosted:
         td = TestDetails.query.filter_by(email=email).first()
         if td:
             if td.testend:
-                button = "<a href='/quiz' class='btn btn-sm btn-default'>Your Score: "+str(td.score)+"</a>"
+                button = "<a href='/quiz/"+testid+"' class='btn btn-sm btn-default'>View Result (score: "+str(td.score)+")</a>"
             else:
-                button = "<a href='/quiz' class='btn btn-sm btn-warning'>In Progress!</a>"
+                button = "<a href='/quiz/"+testid+"' class='btn btn-sm btn-warning'>Resume Test</a>"
         else:
-            button = "<a href='/quiz' class='btn btn-sm btn-primary'>Attempt Test</a>"
+            button = "<a href='/quiz/"+testid+"' class='btn btn-sm btn-primary'>Attempt Test</a>"
 
     else:
         button = "<a href='#' class='btn btn-sm btn-warning' disabled>Locked</a>"
@@ -1268,7 +1256,7 @@ def gettestdetails(email=None, test_name=None):
     result = Tests.query.filter_by(name=test_name).first()
     if result:
         test_details = str(result).split("::")
-        button = makestatusbutton(email, result.isHosted())
+        button = makestatusbutton(email, result.isHosted(), test_name)
         test_details.append(button)
         # tests.append(test_details)
     return test_details
@@ -1400,16 +1388,7 @@ def sendMail(encode='Testing', code='Testing', email='rguktemailtest@gmail.com')
             return True
     except Exception as e:
         app.logger.debug("Something went wrong in sending verification mail, please try again "+str(e))   
-    return False         
-
-
-# def sendMail(encode='', code='', email='rguktemailtest@gmail.com'):
-#     app.logger.debug("send mail function")
-#     msg = Message('Account Verification for RGUKT QUIZ', sender = 'RGUKT QUIZ <rguktemailtest@gmail.com>', recipients = [email])
-#     msg.html = """Hi Receipient,\n Please click on link given below to activate your account.
-#     <a href=%s/verify/%s/%s """ % (request.host, encode, code)
-#     mail.send(msg)
-#     return True
+    return False
 
 @app.route('/registration', methods=['GET', 'POST'])
 def registration():
@@ -1618,12 +1597,13 @@ def validate_file(file_name,data):
         file_report["isValid"] = 'Invalid Filename or Extension.'
     return file_report
 
-@app.route('/uninvite/<email>', methods=["GET"])
+@app.route('/uninvite/<email>/<testid>', methods=["GET"])
 @admin_login_required
-def uninvite(email):
+def uninvite(email, testid):
     result = StudentTests.query.filter_by(emailid=email).delete()
+
     db.session.commit()
-    return redirect(url_for('edit'))
+    return redirect("/edit/"+testid)
 
 def save_file(folder_name,file_name,data):
     filename = secure_filename(file_name)
@@ -1656,26 +1636,28 @@ def create(admin=None, test_name=None):
         admin = session["user"]['email']
 
     if request.method == "GET":
-        if not test_name:
-            test_name = "English Literacy Test"
-        nameValid = validate_name(test_name)
+        tests= [{"name":"English Comprehension Test 1","start_date":"30-07-2017 12:00","end_date":"30-08-2017 12:00"},{"name":"English Comprehension Test 2","start_date":"30-07-2017 12:00","end_date":"30-08-2017 12:00"},{"name":"English Comprehension Test 3","start_date":"30-07-2017 12:00","end_date":"30-08-2017 12:00"}]
+        for test in tests:
+            # if not test_name:
+            test_name = test["name"]
+            app.logger.info(test_name)
+            nameValid = validate_name(test_name)
 
-        start_date = "30-07-2017 12:00"
-        startdateValid = validate_date(start_date)
-        
-        end_date = "30-08-2017 12:00"
-        enddateValid = validate_date(end_date)
+            start_date = test["start_date"]
+            startdateValid = validate_date(start_date)
+            
+            end_date = test["end_date"]
+            enddateValid = validate_date(end_date)
 
-        testValid = False
-        if nameValid and startdateValid and enddateValid:
-            testValid = True
-            app.logger.info('%s created a Test - %s' %(admin,test_name))
-            createDefaultTest(test_name,admin, start_date,end_date)
-            settestsession(test_name,start_date,end_date)
-            return redirect(url_for("admin"))
-        else:
-            app.logger.info('Failed to create Test - %s' %test_name)
-            return redirect(url_for("admin"))
+            testValid = False
+            if nameValid and startdateValid and enddateValid:
+                testValid = True
+                app.logger.info('%s created a Test - %s' %(admin,test_name))
+                createDefaultTest(test_name,admin, start_date,end_date)
+                settestsession(test_name,start_date,end_date)
+            else:
+                app.logger.info('Failed to create Test - %s' %test_name)
+        return redirect(url_for("admin"))
 
 def loadTestSet():
     student = Users.query.filter_by(user_type="student").first()
@@ -1714,47 +1696,48 @@ def updateDate(testid=None, start_date=None,end_date=None):
 def updateStudents(testid, students_list):
     
     slist = []
+    students = []
     for student in students_list:
         student = student.lstrip()
         student = student.rstrip()
         if student == "":
             continue
         if isRegistered(student):
-            slist.append(student)
             qry = getFirstTestRecord(student)
             if qry != None:
                 if testid in qry.testslist:
-                    session["students"].append(student+" is already Invited.")
+                    students.append(student+" is already Invited.")
                 else:
                     qry.testslist.append(testid)
                     db.session.commit()
+                    students.append(student+" is Invited.")
+                    slist.append(student)
             else:
                 tests = [testid]
                 studenttests = StudentTests(student,tests)
                 db.session.add(studenttests)
                 db.session.commit()
-                session["students"].append(student+" is Invited.")
+                students.append(student+" is Invited.")
                 app.logger.info('%s is Invited' %student)
+                slist.append(student)
         else:
-            session["students"].append(student+" is not Registered.")
+            students.append(student+" is not Registered.")
             app.logger.info('%s is not registered' %student)
-    session["slist"] = slist
+    return slist
 
-@app.route('/edit', methods=["GET", "POST"])
+@app.route('/edit/<testid>', methods=["GET", "POST"])
 @admin_login_required
-def edit(testid=None):
+def edit(testid):
 
-    if not testid:
-        testid = testid if testid else "English Literacy Test"
+    # if not testid:
+    #     testid = testid if testid else "English Comprehension Test"
         # app.logger.info('Edit Test Page (%s) accessed by %s' %(testid))
 
     if request.method == "GET":
-        session["messages"] = False
-        return render_template("add_students.html")
+        return render_template("add_students.html", testid=testid, messages=False)
 
     if request.method == "POST":
-        session["messages"] = True
-        session["students"] = []
+        students = []
         try:
             start_date = request.form["datetimepicker1"]
             end_date = request.form["datetimepicker2"]
@@ -1764,23 +1747,28 @@ def edit(testid=None):
 
                 if validate_start_date:
                     if validate_end_date:
-                        updateDate(testid, start_date,end_date)
+                        updatedate = updateDate(testid, start_date,end_date)
+                        if updatedate:
+                            startdatevalid = "Start Date %s is Valid and Updated." %str(start_date)
+                            enddatevalid = "End Date %s is Valid and Updated." %str(end_date)
+                        else:
+                            startdatevalid = "Something went wrong. Please log in again to make updates."
+                            enddatevalid = ""                        
                     else:
-                        session["startdatevalid"] = "End Date %s is not Valid." %str(end_date)
+                        enddatevalid = "End Date %s is not Valid." %str(end_date)
                 else:
-                    session["enddatevalid"] = "Start Date %s is not Valid." %str(start_date)
+                    startdatevalid = "Start Date %s is not Valid." %str(start_date)
 
             students_list = request.form["studentslist"]
             if len(students_list) != 0:
                 students_list = students_list.split("\n")
                 app.logger.info('Students List %s' %students_list)
-                updateStudents(testid, students_list)
-
+                students = updateStudents(testid, students_list)
         except Exception as e:
-            session["students"].append(e)
+            students.append(e)
 
-        app.logger.info('%s added %s to %s' %(admin,session["students"],testid))
-        return render_template("add_students.html")
+        app.logger.info('%s added %s to %s' %(admin,students,testid))
+        return render_template("add_students.html", testid=testid, students=students, messages=True)
 
 @app.route('/getStudentsList/<test>', methods=["GET"])
 @admin_login_required
@@ -1796,20 +1784,21 @@ def getStudentsList(test):
 @app.route('/prefiledit/<name>', methods=["GET"])
 @admin_login_required
 def prefiledit(name):
+    app.logger.info(name)
     test = Tests.query.filter_by(name=name).first()
+    if test:
+        start_date = test.start_date
+        end_date = test.end_date
+        students = eval(getStudentsList(name))["students"]
+        return json.dumps({"start_date":start_date, "end_date":end_date, "students":students})
+    return False
 
-    start_date = test.start_date
-    end_date = test.end_date
-    students = eval(getStudentsList(name))["students"]
-
-    return json.dumps({"start_date":start_date, "end_date":end_date, "students":students})
-
-def sendNotifyMail(email='rguktemailtest@gmail.com'):
+def sendNotifyMail(email='rguktemailtest@gmail.com', testid=None):
     try:
         app.logger.debug("send notify mail function")
         body = """Dear Student,<br> This email message is sent by the online quiz portal.
         Click on the link below and follow the instructions to take the test.
-        <a href=%s/quiz>Test Link</a> """ % (request.host)
+        <a href=%s/quiz/%s>Test Link</a> """ % (request.host, testid)
         response = requests.post(
             "https://api.mailgun.net/v3/rguktrkv.ac.in/messages",
             auth=("api", os.environ['YOUR_MAIL_GUN_KEY']),
@@ -1835,11 +1824,18 @@ def notify(testid):
     mail_responses = []
     for email in student_emails:
         response = sendNotifyMail(email=email)
-        mail_responses.append({
-            "mail":email,
-            "status_code":response.status_code,
-            "status_message":response.text
-        })
+        if response:
+            mail_responses.append({
+                "mail":email,
+                "status_code":response.status_code,
+                "status_message":response.text
+            })
+        else:
+            mail_responses.append({
+                "mail":email,
+                "status_code":"400",
+                "status_message":"Mail Not Sent"
+            })
     return json.dumps(mail_responses)
 
 def get_all_test_created_by(creator=None):
@@ -1855,9 +1851,9 @@ def get_all_test_created_by(creator=None):
         app.logger.info(test)
         test.append(eval(getStudentsList(test[0]))["students"])
         app.logger.info(test)
-        button = "<a href='/edit' class='btn btn-sm btn-primary'>Edit Test</a>"
+        button = "<a href='/edit/"+test[0]+"' class='btn btn-sm btn-primary'>Edit Test</a>"
         test.append(button)
-        button = "<a href='/quiz' class='btn btn-sm btn-success'>Preview Test</a>"
+        button = "<a href='/quiz/"+test[0]+"' class='btn btn-sm btn-success'>Preview Test</a>"
         test.append(button)
         button = "<a data-toggle='modal' data-target='#NotifyMailResponses' id='notify"+str(count)+"' name='/notify/"+test[0]+"' class='btn btn-sm btn-warning'>Notify</a>"
         test.append(button)
@@ -1882,10 +1878,11 @@ def autocomplete(search=None):
         search = request.args.get('q')
     query = db.session.query(Users.emailid).filter(Users.emailid.like('%' + str(search) + '%'))
     results = [mv[0] for mv in query.all()]
+    app.logger.info(["autocomple result", results])
     return jsonify(matching_results=results)
 
 def get_all_student_details():
-    students = userDetails.query.all()
+    students = userDetails.query.filter(userDetails.email != "admin@quiz.in").all()
     student_table = {}
     for student in students:
         if student.email not in student_table:
@@ -1928,8 +1925,8 @@ def get_test_responses_as_dict(testid=None):
 
             if rollno not in table:
                 table[rollno] = {
-                    "name":name,
                     "rollno":rollno,
+                    "name":name,
                     "emailid":emailid,
                     "testctime":testctime,
                     "count": 1
@@ -1960,49 +1957,124 @@ def render_csv_from_test_responses(data):
                 ]
         # app.logger.info(list(data)[0])
 
-        Questions_count = db.session.query(distinct(Randomize.qno)).count()
-        app.logger.info(["number is ", Questions_count])
-        # return ""
-        for i in range(1, Questions_count + 1):
-            # app.logger.info("hi ra --> Question"+ str(i))
-            header.extend(
-                    [
-                        "Question_"+str(i)+"",
-                        "Question_"+str(i)+"_Score",
-                        "Question_"+str(i)+"_Submittedans",
-                        "Question_"+str(i)+"_Responsetime",
-                        "Question_"+str(i)+"_Status",
-                        "Question_"+str(i)+"_Time"
-                    ]
-                )
+        user = Randomize.query.first()
+        if user:
+            Questions_count = Randomize.query.filter_by(user1=user.user1).count()
+            app.logger.info(["number is ", Questions_count])
+            # return ""
+            for i in range(1, Questions_count + 1):
+                # app.logger.info("hi ra --> Question"+ str(i))
+                header.extend(
+                        [
+                            "Question_"+str(i)+"",
+                            "Question_"+str(i)+"_Score",
+                            "Question_"+str(i)+"_Submittedans",
+                            "Question_"+str(i)+"_Responsetime",
+                            "Question_"+str(i)+"_Status",
+                            "Question_"+str(i)+"_Time"
+                        ]
+                    )
+            csvList.append(header)
+
+            for csv_line in data:
+                app.logger.info(csv_line)
+                row = [csv_line["name"],
+                        csv_line["rollno"],
+                        csv_line["emailid"],
+                        csv_line["testctime"]
+                        ]
+                for i in range(1, Questions_count + 1):
+                    row.extend(
+                            [
+                                csv_line["Question_"+str(i)+""] if "Question_"+str(i)+"" in csv_line else "",
+                                csv_line["Question_"+str(i)+"_Score"] if "Question_"+str(i)+"_Score" in csv_line else "",
+                                csv_line["Question_"+str(i)+"_Submittedans"] if "Question_"+str(i)+"_Submittedans" in csv_line else "",
+                                csv_line["Question_"+str(i)+"_Responsetime"] if "Question_"+str(i)+"_Responsetime" in csv_line else "",
+                                csv_line["Question_"+str(i)+"_Status"] if "Question_"+str(i)+"_Status" in csv_line else "",
+                                csv_line["Question_"+str(i)+"_Time"] if "Question_"+str(i)+"_Time" in csv_line else "",
+                            ]
+                        )
+                csvList.append(row)
+        si = io.StringIO()
+        cw = csv.writer(si)
+        cw.writerows(csvList)
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = "attachment; filename=Complete_Data.csv"
+        output.headers["Content-type"] = "text/csv"
+        return output
+
+def get_test_responses_summary_as_dict(testid=None):
+        
+        result = Response.query.all()
+
+        students = json.loads(get_all_student_details())
+        questions = ""
+        # app.logger.info(students)
+        table = {}
+        student_temp = {"name":None, "rollno":None, "Speaking":0, "Writing":0, "Listening":0, "Reading":0}
+        for entry in result:
+            id = entry.id
+            name = entry.name
+            emailid = entry.emailid
+            rollno = ""
+            q_score = entry.q_score
+            q_section = entry.q_section
+
+            if emailid in students:
+                student = students[emailid]
+                name = student['name']
+                rollno = student['rollno']
+
+            if rollno not in table:
+                table[rollno] = student_temp.copy()
+                table[rollno]['name'] = name
+                table[rollno]['rollno'] = rollno
+
+            if q_section == "Speaking":
+                table[rollno]["Speaking"] += q_score
+            elif q_section == "Listening":
+                table[rollno]["Listening"] += q_score
+            elif q_section == "Reading":
+                table[rollno]["Reading"] += q_score
+            elif q_section == "Writing":
+                table[rollno]["Writing"] += q_score
+        # app.logger.info(table)
+        return table
+
+def render_csv_from_test_responses_summary(data):
+        csvList = []
+        header = [
+                    "name",
+                    "rollno",
+                    "Speaking",
+                    "Listening",
+                    "Reading",
+                    "Writing",
+                    "Total"
+                ]
+       
         csvList.append(header)
 
         for csv_line in data:
-            app.logger.info(csv_line)
+            # app.logger.info(csv_line)
             row = [csv_line["name"],
                     csv_line["rollno"],
-                    csv_line["emailid"],
-                    csv_line["testctime"]
-                    ]
-            for i in range(1, Questions_count + 1):
-                row.extend(
-                        [
-                            csv_line["Question_"+str(i)+""] if "Question_"+str(i)+"" in csv_line else "",
-                            csv_line["Question_"+str(i)+"_Score"] if "Question_"+str(i)+"_Score" in csv_line else "",
-                            csv_line["Question_"+str(i)+"_Submittedans"] if "Question_"+str(i)+"_Submittedans" in csv_line else "",
-                            csv_line["Question_"+str(i)+"_Responsetime"] if "Question_"+str(i)+"_Responsetime" in csv_line else "",
-                            csv_line["Question_"+str(i)+"_Status"] if "Question_"+str(i)+"_Status" in csv_line else "",
-                            csv_line["Question_"+str(i)+"_Time"] if "Question_"+str(i)+"_Time" in csv_line else "",
-                        ]
-                    )
+                    csv_line["Speaking"],
+                    csv_line["Listening"],
+                    csv_line["Reading"],
+                    csv_line["Writing"],
+                    csv_line["Speaking"]+csv_line["Listening"]+csv_line["Reading"]+csv_line["Writing"]
+                ]
+            
             csvList.append(row)
         si = io.StringIO()
         cw = csv.writer(si)
         cw.writerows(csvList)
         output = make_response(si.getvalue())
-        output.headers["Content-Disposition"] = "attachment; filename=English Literacy Test.csv"
+        output.headers["Content-Disposition"] = "attachment; filename=Summary_Sheet.csv"
         output.headers["Content-type"] = "text/csv"
         return output
+
 
 @app.route('/downloadTestResults/<testid>')
 def downloadTestResults(testid):
@@ -2014,10 +2086,24 @@ def downloadTestResults(testid):
         data = table.values()
         return render_csv_from_test_responses(data)
 
+@app.route('/downloadTestResultsSummary/<testid>')
+def downloadTestResultsSummary(testid):
+    if request.method == 'GET':
+
+        app.logger.info(["Requested result summary for test with id ",testid])
+        table = get_test_responses_summary_as_dict(testid)
+
+        data = table.values()
+        return render_csv_from_test_responses_summary(data)
+
+
 @app.route('/showrecorder', methods=['GET'])
 def showrecorder():
     if request.method == "GET":
-        return render_template('recorder.html')
+        if request.is_secure:
+            return render_template('recorder.html')
+        else:
+            return render_template('error.html', error="Audio recording is not supported in insecure origins, Contact Examination Admin")
 
 @app.route('/getrecorder', methods=['GET'])
 def getrecorder():

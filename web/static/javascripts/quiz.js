@@ -68,7 +68,7 @@ var quizModel = {
 				q = index-1;
 			});
 			this.questionIndex = q;
-			//console.log("question index is:" + this.questionIndex)
+			console.log("question index is:" + this.questionIndex)
 		},
 		getQuizStatus : function() {
 			// get the status of the quiz by looking into the questions array
@@ -88,6 +88,7 @@ var quizModel = {
 				this.questionIndex = this.questions.length;
 				this.question = undefined;
 			}
+			
 			if (this.questionIndex < this.questions.length) {
 				this.questionIndex++;
 				if(this.questionIndex == this.questions.length)
