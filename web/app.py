@@ -1636,7 +1636,8 @@ def create(admin=None, test_name=None):
         admin = session["user"]['email']
 
     if request.method == "GET":
-        tests= [{"name":"English Comprehension Test 1","start_date":"30-07-2017 12:00","end_date":"30-08-2017 12:00"},{"name":"English Comprehension Test 2","start_date":"30-07-2017 12:00","end_date":"30-08-2017 12:00"},{"name":"English Comprehension Test 3","start_date":"30-07-2017 12:00","end_date":"30-08-2017 12:00"}]
+        # tests= [{"name":"English Comprehension Test 1","start_date":"30-07-2017 12:00","end_date":"30-08-2017 12:00"},{"name":"English Comprehension Test 2","start_date":"30-07-2017 12:00","end_date":"30-08-2017 12:00"},{"name":"English Comprehension Test 3","start_date":"30-07-2017 12:00","end_date":"30-08-2017 12:00"}]
+        tests= [{"name":"English Comprehension Test","start_date":"30-07-2017 12:00","end_date":"30-08-2017 12:00"}]
         for test in tests:
             # if not test_name:
             test_name = test["name"]
@@ -1697,20 +1698,26 @@ def updateStudents(testid, students_list):
     
     slist = []
     students = []
+    student_table = {}
     for student in students_list:
         student = student.lstrip()
         student = student.rstrip()
         if student == "":
             continue
+        if student == "admin@quiz.in":
+            student_table[student] = " Admin cannot be Invited. He has preview option to take the test"
+
         if isRegistered(student):
             qry = getFirstTestRecord(student)
             if qry != None:
                 if testid in qry.testslist:
                     students.append(student+" is already Invited.")
+                    student_table[qry.emailid] = "is already Invited"
                 else:
                     qry.testslist.append(testid)
                     db.session.commit()
                     students.append(student+" is Invited.")
+                    student_table[qry.emailid] = "is Invited"
                     slist.append(student)
             else:
                 tests = [testid]
@@ -1718,14 +1725,17 @@ def updateStudents(testid, students_list):
                 db.session.add(studenttests)
                 db.session.commit()
                 students.append(student+" is Invited.")
+                student_table[student] = "is Invited"
                 app.logger.info('%s is Invited' %student)
                 slist.append(student)
         else:
             students.append(student+" is not Registered.")
-            app.logger.info('%s is not registered' %student)
-    return slist
+            student_table[student] = "is not Registered"
 
-@app.route('/edit/<testid>', methods=["GET", "POST"])
+            app.logger.info('%s is not registered' %student)
+    return student_table
+
+@app.route("/edit/<testid>", methods=["GET", "POST"])
 @admin_login_required
 def edit(testid):
 
@@ -1737,7 +1747,7 @@ def edit(testid):
         return render_template("add_students.html", testid=testid, messages=False)
 
     if request.method == "POST":
-        students = []
+        students = {}
         try:
             start_date = request.form["datetimepicker1"]
             end_date = request.form["datetimepicker2"]
@@ -1765,7 +1775,9 @@ def edit(testid):
                 app.logger.info('Students List %s' %students_list)
                 students = updateStudents(testid, students_list)
         except Exception as e:
-            students.append(e)
+            app.logger.info(e)
+            # students.append(e)
+            students["error"] = e
 
         app.logger.info('%s added %s to %s' %(admin,students,testid))
         return render_template("add_students.html", testid=testid, students=students, messages=True)
@@ -1876,8 +1888,14 @@ def loadtests(creator=None):
 def autocomplete(search=None):
     if not search:
         search = request.args.get('q')
+    testid = request.args.get('testid')
+    students = []
+    if testid:
+        students = eval(getStudentsList(testid))['students']
     query = db.session.query(Users.emailid).filter(Users.emailid.like('%' + str(search) + '%'))
     results = [mv[0] for mv in query.all()]
+    #The below line will remove students already invited or assigned to test
+    results = list(set(results) - set(students))
     app.logger.info(["autocomple result", results])
     return jsonify(matching_results=results)
 
@@ -1937,7 +1955,7 @@ def get_test_responses_as_dict(testid=None):
 
             table[rollno].update({
                             "Question_"+str(table[rollno]['count'])+"_Submittedans":submittedans,
-                            "Question_"+str(table[rollno]['count'])+"_Responsetime":responsetime,
+                            "Question_"+str(table[rollno]['count'])+"_Responsetime":convert_to_minutes(responsetime),
                             "Question_"+str(table[rollno]['count'])+"_Score":q_score,
                             "Question_"+str(table[rollno]['count'])+"_Status":q_status,
                             "Question_"+str(table[rollno]['count'])+"_Time":time,

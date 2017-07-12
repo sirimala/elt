@@ -48,7 +48,7 @@
 		            </div>
 		        </div>
 		      <div class="form-group">
-		      	<label>Existing Students</label>
+		      	<label>Existing Students : <span id="count"></span></label>
 		      	<div id="existingstudentslist"></div>
 		      </div>
 			  <div class="form-group">
@@ -70,7 +70,7 @@
 				{% endif %}
 				<h4>Added Students:</h4>
 				{% for student in students %}
-					<p class="panel panel-success">{{student}}</p>
+					<p class="panel panel-success">{{student}}, {{students[student]}}</p>
 				{% endfor %}
 			{% endif %}
 		</div>
@@ -121,6 +121,7 @@
      //    });
 
    		console.log(data['students']);
+   		$("#count").html(data['students'].length);
    		$("#existingstudentslist").html('');
    		$.each(data['students'], function(index,val){
 	   		var dom = `<div class="input-group">
@@ -175,6 +176,7 @@
 	        source: function( request, response ) {
 	          $.getJSON("{{url_for('autocomplete')}}",{
 	            q: extractLast(request.term),
+	            testid: "{{testid}}",
 	          }, function(data) {
 	            response($.ui.autocomplete.filter(data.matching_results, extractLast( request.term )));
 	          });

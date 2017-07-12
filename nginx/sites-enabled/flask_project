@@ -1,7 +1,7 @@
 server {
 
     listen 80;
-    server_name     www.mysite.com mysite.com;
+    server_name     localhost;
 
     # disable any limits to avoid HTTP 413 for large image uploads
     client_max_body_size 0;
