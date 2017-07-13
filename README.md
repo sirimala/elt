@@ -130,7 +130,7 @@ The create command setup a “machine” (called dev) for Docker development. In
 ```
 ```
 Now just point the Docker client at the dev machine via:
-$ eval "$(docker-machine env dev)"
+$ eval $(docker-machine env dev)
 
 Run the following command to view the currently running Machines:
 
@@ -216,3 +216,12 @@ You can also enter the Postgres Shell – since we forward the port to the host 
 
 `$ psql -h 192.168.99.100 -p 5432 -U postgres --password`
 Once done, stop the processes via docker-compose stop.
+
+## MAKING THE APP TO BE ACCESSIBLE THROUGH DIFFERENT MACHINES ON SAME NETWORK
+For security reasons, Docker configures the `iptables` rules to prevent containers from forwarding traffic from outside the host machine, on **Linux hosts.** Docker sets the default policy of the FORWARD chain to DROP.
+
+To override this default behavior you can manually change the default policy:
+
+`$ sudo iptables -P FORWARD ACCEPT`
+
+The iptables settings are lost when the system reboots. If you want the change to be permanent, refer to your Linux distribution’s documentation.
